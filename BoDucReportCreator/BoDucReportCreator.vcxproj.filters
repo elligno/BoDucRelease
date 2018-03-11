@@ -28,6 +28,9 @@
       <Extensions>moc;h;cpp</Extensions>
       <SourceControlFiles>False</SourceControlFiles>
     </Filter>
+    <Filter Include="BoDucAPI Files">
+      <UniqueIdentifier>{793da2d4-eeb4-4da0-ade3-f57fecba4ad1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -35,6 +38,36 @@
     </ClCompile>
     <ClCompile Include="BoDucReportCreator.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BdAPI\AddressAlgorithm.cpp">
+      <Filter>BoDucAPI Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BdAPI\AddressBuilder.cpp">
+      <Filter>BoDucAPI Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BdAPI\AddressParser.cpp">
+      <Filter>BoDucAPI Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BdAPI\BoDucApp.cpp">
+      <Filter>BoDucAPI Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BdAPI\BoDucFields.cpp">
+      <Filter>BoDucAPI Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BdAPI\BoDucParser.cpp">
+      <Filter>BoDucAPI Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BdAPI\BoDucReaderfix.cpp">
+      <Filter>BoDucAPI Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BdAPI\VictoBonLivraison.cpp">
+      <Filter>BoDucAPI Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BdAPI\VictoReader.cpp">
+      <Filter>BoDucAPI Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BdAPI\BoDucUtility.cpp">
+      <Filter>BoDucAPI Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -51,5 +84,43 @@
     <QtRcc Include="BoDucReportCreator.qrc">
       <Filter>Resource Files</Filter>
     </QtRcc>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="BdAPI\AddressAlgorithm.h">
+      <Filter>BoDucAPI Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BdAPI\AddressBuilder.h">
+      <Filter>BoDucAPI Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BdAPI\AddressParser.h">
+      <Filter>BoDucAPI Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BdAPI\BoDucApp.h">
+      <Filter>BoDucAPI Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BdAPI\BoDucBonLivraisonAlgorithm.h">
+      <Filter>BoDucAPI Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BdAPI\BoDucCsvReader.h">
+      <Filter>BoDucAPI Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BdAPI\BoDucFields.h">
+      <Filter>BoDucAPI Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BdAPI\BoDucParser.h">
+      <Filter>BoDucAPI Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BdAPI\BoDucReaderfix.h">
+      <Filter>BoDucAPI Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BdAPI\VictoBonLivraison.h">
+      <Filter>BoDucAPI Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BdAPI\VictoReader.h">
+      <Filter>BoDucAPI Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BdAPI\BoDucUtility.h">
+      <Filter>BoDucAPI Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

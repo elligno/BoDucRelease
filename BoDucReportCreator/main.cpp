@@ -4,7 +4,7 @@
 int main(int argc, char *argv[])
 {
 	QApplication a(argc, argv);
-	BoDucReportCreator w;
+	bdApp::BoDucReportCreator w;
 	w.show();
 	return a.exec();
 }

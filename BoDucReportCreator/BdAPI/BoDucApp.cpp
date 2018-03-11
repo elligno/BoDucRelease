@@ -1,0 +1,341 @@
+// C++ includes
+#include <iostream>
+#include <algorithm>
+#include <fstream>
+#include <string>
+#include <stdlib.h>
+// boost includes
+#include <boost/algorithm/string.hpp> // string algorithm
+#include <boost/algorithm/string/split.hpp> // splitting algo
+// app. includes
+#include "BoDucApp.h"
+#include "BoDucParser.h"
+//#include "BoDucWriter.h"
+#include "VictoBonLivraison.h"
+
+namespace bdAPI 
+{
+	BoDucApp::BoDucApp( const std::vector<std::string>& aVecOfilePath)
+	: m_fileName(""),
+		m_workDir(R"(C:\JeanWorks\BoDuc\ReadAndSor\DataToTest\)"),
+		m_bonLivraison("BonDeLivraison.txt"),
+		m_vecfilePath(aVecOfilePath),
+		m_readPrm(), // BoDuc field
+		m_bdParseAlgorithm(nullptr)
+	{
+	}
+
+	BoDucApp::BoDucApp( const std::string& aFile /*= "request-2.csv"*/)
+	: m_fileName(aFile),
+		m_workDir(""),
+		m_bonLivraison("BonDeLivraison.txt"),
+		m_readPrm(), // BoDuc field
+		m_bdParseAlgorithm(nullptr)
+	{
+		std::cout << "Reading the following file: " << m_workDir + m_fileName << "\n";
+	}
+
+	void BoDucApp::process()
+	{
+		using namespace std;
+		using BoDucDataAlgo = unique_ptr<BoDucBonLivraisonAlgorithm>;
+		
+		// parser (How to parse the BoDuc command)
+		BoDucParser w_boducParseAlgo;
+
+		// create the algorithm to parse 
+		// Design Note: 
+		// must be done outside of this method, this way we can set it from GUI user interface
+    // user may want to use another algorithm for some reason, for now "VictoReader" seem  
+		// to work in most of cases, but it may change in the future.
+		BoDucDataAlgo w_bonLivraison = make_unique<VictoBonLivraison>();
+
+		auto w_filesInUse = getNbSelectedFiles();
+		
+		if (w_filesInUse==1)
+		{
+			// retrieve values 
+			w_boducParseAlgo.extractData(m_mapintVec, w_bonLivraison.get());
+			w_bonLivraison->getBoDucStruct(m_reportData);
+		}
+		else
+		{
+			// support to multiple files selection (vector of map)
+			for( mapIntVecstr w_mapofcmd : m_vecOfMap)
+			{
+				// retrieve values 
+				w_boducParseAlgo.extractData(w_mapofcmd, w_bonLivraison.get());
+
+				// retrieve BoDuc fields
+				//std::vector<BoDucFields> w_testFields;
+				w_bonLivraison->getBoDucStruct(m_reportData);
+			}
+		}
+
+		// application stay open and you read files, BoDucApp never destroy
+		// then all member never get destroy or empty. Need to force empty.
+		if( !m_vecOfMap.empty())
+		{
+			m_vecOfMap.clear();
+		}
+	}
+
+	void BoDucApp::readFile( const std::string& aFileAnPath, const std::string& aSplitBill)
+	{
+		using namespace std;
+		using namespace boost;
+		using namespace boost::algorithm;
+
+		// if we are processing multiple command one app is running
+		// means we may have processed a command file, just clear last.
+		if( !m_fileName.empty())
+		{
+			m_fileName.clear();
+		}
+
+		// csv file that we are processing
+		m_fileName = aFileAnPath;
+
+		// create alias
+		using vecofstr = std::vector<std::string>;
+
+		// declare vector to store our string from cvs document 
+		vecofstr w_vecStr;
+		w_vecStr.reserve(50); // reserve enough space for storing each line ??
+
+		// first time we go through we fill the map
+		// but next we go in (didn't close the app),
+		// we must empty the container ... i do not understand
+		if( !m_mapintVec.empty())
+		{
+			// clear all content
+			m_mapintVec.clear();
+			
+			// sanity check
+			if( m_mapintVec.size() != 0)
+			{
+				std::cerr << "Map of lines not empty\n";
+			}
+		}
+
+		// Command in one file, reading the command by splitting with the "Ordered on"
+		short i(0); // set to zero as default, otherwise set to whatever comes up
+		ifstream w_readVSV(aFileAnPath.c_str());
+		if( w_readVSV) // check if its open, then read line-by-line 
+		{
+			for( string line; std::getline(w_readVSV, line);)
+			{
+				if(i == 0) // first line is obsolete
+				{
+					// check if contains "Ordered on" as first line
+					// NOTE "request-2.csv" we split the bill with this token, 
+					// and format was that first line contains this string
+					if( contains(line, "Ordered on"))
+					{
+						++i;  // next line
+						continue; // i don't see why we should increment it
+					}
+				}//if(i==0)
+				w_vecStr.push_back(line);
+
+				// NOTE we assume that we are at the last line of the command
+				// then we check if the carrier string name is part of the whole 
+				// command (if so, add it to the map otherwise skip it)
+				// IMPORTANT this algorithm assume that we are at the end or the 
+				// last line (split into separate command is based on this assumption)
+				// if not the case then it won't work!!
+				if( contains(line, aSplitBill))
+				{
+					// check for carrier name some are different and don't need to be treated
+					// Francois mentioned that field can be blank, need to be careful
+					// Also, we must check also for the "TM" tonne metrique, if not present
+					// the cmd is discarded
+					// lambda (anonymous) function declaration
+					auto checkTransportName = [](const std::string& aStr2Look) -> bool     
+					{
+						// Transporteur name (BoDuc)
+						return (contains(aStr2Look, "NIR R-117971-3 TRSP CPB INC")
+							   || contains(aStr2Look, "NIR R-117971-3 TRANSPORT CPB")
+							   || contains(aStr2Look, "NIR R-117971-3 C.P.B.")
+							   || contains(aStr2Look, "BODUC- ST-DAMASE"));              // sometime we have empty (blank field) string
+					};
+
+					if( any_of( w_vecStr.cbegin(), w_vecStr.cend(), checkTransportName))
+// 						[](const std::string& aStr2Look) -> bool     // lambda (anonymous) function
+// 					{
+// 						// Transporteur name (BoDuc)
+// 						return (contains(aStr2Look, "NIR R-117971-3 TRSP CPB INC")
+// 							   || contains(aStr2Look, "NIR R-117971-3 TRANSPORT CPB")
+// 							   || contains(aStr2Look, "NIR R-117971-3 C.P.B."));      // sometime we have empty (blank field) string
+// 					}
+//					)//any_of
+//						)//if
+					{
+						m_mapintVec.insert(make_pair(i++, w_vecStr));
+						w_vecStr.clear();
+					}
+					else
+					{
+						/*w_mapofCmd.insert(std::make_pair(i++,w_vecStr));*/
+						w_vecStr.clear();
+					}
+				}
+			}//for-loop
+		}//if
+	}
+
+	void BoDucApp::readFiles( const std::list<std::string>& aFilesNameWithPath, const std::string& aSplitBill)
+	{
+		auto w_begListIter = aFilesNameWithPath.cbegin();
+		while( w_begListIter != aFilesNameWithPath.cend())
+		{
+			const std::string& w_fileName = *w_begListIter;
+			// call readFile
+			readFile( w_fileName, std::string("Signature"));
+
+			// check for number of command to proceed
+			size_t w_numCmd = nbOfCmd();
+			// check if it exist
+			if( m_nbOfCmdInFile.find(w_fileName) != m_nbOfCmdInFile.cend())
+			{
+				continue; // not sure about this one!!
+			}
+			m_nbOfCmdInFile.insert( std::make_pair(*w_begListIter,w_numCmd));
+
+			// push m_mapIntVec into vector
+			// vector provide a push_back() that support the move semantic  
+			// since we don't need the content of the map for next iteration
+			// might as well to move its content, is that make sense?
+			// don't copy something that i am not going to use 
+			m_vecOfMap.push_back( std::move(m_mapintVec)); // can i do that? why not
+
+			// sanity check
+			assert(0 == m_mapintVec.size()); // according to the move semantic
+			++w_begListIter; // next in the list
+		}
+
+		// now supporting multiple file selection from user
+	}
+
+	void BoDucApp::createReport( const std::string & aBonDeLivraison)
+	{
+		// do we need to set the path for saving result
+	//	BoDucWriter w_bonLivraison; next version
+		// what we need is to check if file already exist
+		// if the file exist then we re-open and append at the end
+		// if it doesn't exist, then create a new file and open it for writing
+
+		std::ofstream w_bonLivraison(aBonDeLivraison/*aOutputFile*/, std::ios::out);
+    //assert(w_bonLivraison.is_open());
+#if 1
+		// write title or header
+		w_bonLivraison << "No Command " << "\t" << "Shipped To " << "\t" << "Deliver Date " << "\t" <<
+			"Product " << "\t" << "Quantity " << "\t" << "Silo" << "\n";
+
+		for( const BoDucFields& w_bfield : m_reportData)
+		{
+				w_bonLivraison << w_bfield.m_noCmd << "\t" << w_bfield.m_deliverTo << "\t" << w_bfield.m_datePromise
+					<< "\t" << w_bfield.m_produit << "\t" << w_bfield.m_qty << "\t" << w_bfield.m_silo << "\n";
+		}
+#endif
+
+		// IMPORTANT 
+		//  
+	}
+
+	size_t BoDucApp::nbOfCmd( /*const std::string& aCmdFile*/)
+	{
+		size_t w_nbCmd = 0;
+		std::ifstream w_readCSV(m_fileName.c_str()/*aCmdFile.c_str()*/);
+		if (w_readCSV) // check if its open, then read line-by-line 
+		{
+			for (std::string line; std::getline(w_readCSV, line);)
+			{
+				// check if contains "Signature"
+				if (boost::algorithm::contains(line, std::string("Signature")))
+				{
+					++w_nbCmd;
+				}
+			}//for-loop
+		}
+
+		return w_nbCmd;
+	}
+
+	size_t BoDucApp::getNbCmdForThisFile( const std::string & aCmdFile)
+	{
+		// use the find algorithm of the map to retrieve the number
+		// of command with key value the name of the file
+		return 0; // debugging purpose
+	}
+
+#if 0
+	void BoDucParsingAlgo::readFile(const std::string& aFileAnPath, const std::string& aSplitBill)
+	{
+		using namespace std;
+		using namespace boost;
+		using namespace boost::algorithm;
+
+		// create alias
+		using vecofstr = std::vector<std::string>;
+
+		// declare vector to store our string from cvs document 
+		vecofstr w_vecStr;
+		w_vecStr.reserve(50); // reserve enough space for storing each line ??
+
+    // Command in one file, reading the command by splitting with the "Ordered on"
+		short i(0);
+		ifstream w_readVSV(aFileAnPath.c_str());
+		if (w_readVSV) // check if its open, then read line-by-line 
+		{
+			for (string line; std::getline(w_readVSV, line);)
+			{
+				if (i == 0) // first line is obsolete
+				{
+					// check if contains "Ordered on" as first line
+					// NOTE "request-2.csv" we split the bill with this token, 
+					// and format was that first line contains this string
+					if (contains(line, "Ordered on"))
+					{
+						++i;  // next line
+						continue; // i don't see why we should increment it
+					}
+				}//if(i==0)
+				w_vecStr.push_back(line);
+
+				// NOTE we assume that we are at the last line of the command
+				// then we check if the carrier string name is part of the whole 
+				// command (if so, add it to the map otherwise skip it)
+				// IMPORTANT this algorithm assume that we are at the end or the 
+				// last line (split into separate command is based on this assumption)
+				// if not the case then it won't work!!
+				if (contains(line, aSplitBill))
+				{
+					// check for carrier name some are different and don't need to be treated
+					// Francois mentioned that field can be blank, need to be careful
+					// Also, we must check also for the "TM" tonne metrique, if not present
+					// the cmd is discarded
+					if (any_of(w_vecStr.cbegin(), w_vecStr.cend(),
+						[](const std::string& aStr2Look) -> bool     // lambda (anonymous) function
+					{
+						return (contains(aStr2Look, "NIR R-117971-3 TRSP CPB INC")
+							|| contains(aStr2Look, "NIR R-117971-3 TRANSPORT CPB")); // sometime we have empty (blank field) string
+					}
+					)//any_of
+						)//if
+					{
+						m_mapintVec.insert(make_pair(i++, w_vecStr));
+						w_vecStr.clear();
+					}
+					else
+					{
+						/*w_mapofCmd.insert(std::make_pair(i++,w_vecStr));*/
+						w_vecStr.clear();
+					}
+				}
+			}//for-loop
+		}//if
+	}
+#endif
+} // End of namespace
+
