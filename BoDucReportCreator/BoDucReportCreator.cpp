@@ -39,7 +39,7 @@ namespace {
 	}
 
 	// Read each line of the command file
-	QList<QVector<QVariant>> readFileTab()
+	QList<QVector<QVariant>> readFileTab( const QString& aFilepath)
 	{
 		using namespace std;
 		QList<QVector<QVariant>> w_list2Ret;
@@ -47,7 +47,7 @@ namespace {
 		// raw string (to be completed)
 		const std::string w_filePath = R"(F:\EllignoContract\BoDuc\BoDucDev\BoDucApp01\ReportFiles\)";
 		std::string w_fileName = w_filePath + std::string("BonLivraison_201217_withAlgo.txt");
-		std::ifstream infile(w_fileName.c_str());
+		std::ifstream infile(aFilepath.toStdString().c_str());
 		std::string line;
 		if (!infile)
 		{
@@ -220,7 +220,40 @@ namespace bdApp
 	// loading commands form file (created by the parser)
 	void BoDucReportCreator::open()
 	{
-		m_read4test = readFileTab(); // from file
+		// create working folder
+		QDir w_reportFolder;	 
+		QString w_pathNow = QDir::current().absolutePath();
+		w_reportFolder.setPath(w_pathNow);
+		QString w_repDirName = w_reportFolder.dirName();
+
+		// multiple file selection support
+		// now opening file to be processed (name of the file returned)
+		QString w_filesName;
+
+		// we should be at the BoDucApp level
+		// need to check if folder exist, if not then create it 
+		if( !w_reportFolder.exists( QString("ReportFiles")))
+		{
+			QString w_pathNow = QDir::current().absolutePath();
+			w_pathNow += QString(R"(/ReportFiles)");
+			w_reportFolder.setPath(w_pathNow);
+			QString w_repDirName = w_reportFolder.dirName();
+
+			w_filesName = QFileDialog::getOpenFileName(this, tr("Open File"),
+				w_repDirName,
+				tr("Text (*.txt *.csv)"));
+		}
+		else
+		{
+			w_reportFolder.setPath(w_pathNow);
+			QString w_repDirName = w_reportFolder.dirName();
+
+			w_filesName = QFileDialog::getOpenFileName(this, tr("Open File"),
+				w_repDirName,
+				tr("Text (*.txt *.csv)"));
+		}
+		
+		m_read4test = readFileTab(w_filesName); // from file
 		createTableWidget();
 	}
 
