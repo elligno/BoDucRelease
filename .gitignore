@@ -249,3 +249,5 @@ ModelManifest.xml
 /BoDucReportCreator/Unit 1_BonLiveraison.txt
 /BoDucReportCreator/Unit 3_BonLiveraison.txt
 /BoDucReportCreator/Unit 1_BonLiveraison.txt
+*.txt
+*.pdf
