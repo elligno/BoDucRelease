@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <cctype>
 // Qt includes
 #include <QtWidgets/QWidget>
 #include <QtWidgets/QGroupBox>
@@ -61,7 +62,10 @@ namespace {
 		auto lineCounter = 0;
 		while (std::getline(infile, line))
 		{
-			if (lineCounter == 0) { lineCounter += 1; continue; }
+			// header column name want to skip that
+			if( lineCounter == 0) { lineCounter += 1; continue; }
+			if( line.empty())     { continue; } // don't treat empty line
+			// ...
 			if (!row_values.empty())
 			{
 				row_values.clear();
@@ -366,7 +370,7 @@ namespace bdApp
 	}
 	void BoDucReportCreator::setupViews()
 	{
-		m_tblWidget = new QTableWidget(50, 7, this); //
+		m_tblWidget = new QTableWidget(200, 7, this); //
 		m_tblWidget->setHorizontalHeaderLabels(QStringList() //<< tr("Selected")
 			<< tr("No Command")
 			<< tr("Shipped To")
@@ -719,6 +723,25 @@ namespace bdApp
 	}
 	void BoDucReportCreator::loadCmdFromFile()
 	{
+		// support to pdf file type we need a different algo for reading
+		// check file extension QtFileInfo and std::all_of()
+// 		bool w_checkFileExt = std::all_of( m_filesName.constBegin(), m_filesName.constEnd(),
+// 			[](const QString& aFileName)
+// 		{
+// 			QFileInfo w_file2Look(aFileName);
+// 			QString w_fExt = w_file2Look.completeSuffix();
+// 			return (w_fExt.compare("txt")==0); // equal (set to txt for debugging purpose, but it should be pdf)
+// 		});
+// 
+// 		if (w_checkFileExt)
+// 		{
+// 			m_bdApp.setFileType(bdAPI::BoDucApp::eFileType::pdf);
+// 		}
+// 		else
+// 		{
+// 			m_bdApp.setFileType(bdAPI::BoDucApp::eFileType::csv);
+// 		}
+
 		if( m_filesName.size() > 1) // user selected more than one files
 		{
 			std::list<std::string> w_listFilesName;
@@ -782,9 +805,27 @@ namespace bdApp
 		// now opening file to be processed (name of the file returned)
 		m_filesName = QFileDialog::getOpenFileNames(this, tr("Open File"),
 			w_defaultDir,
-			tr("Text (*.txt *.csv)"));
+			tr("Text (*.txt *.csv *.pdf)"));
 
-		// number of files selected by user
+		bool w_checkFileExt = std::all_of(m_filesName.constBegin(), m_filesName.constEnd(),
+			[](const QString& aFileName)
+		{
+			QFileInfo w_file2Look(aFileName);
+			QString w_fExt = w_file2Look.completeSuffix();
+			return (w_fExt.compare("pdf") == 0); // equal (set to txt for debugging purpose, but it should be pdf)
+		});
+
+		if( w_checkFileExt)
+		{
+			m_bdApp.setFileType(bdAPI::BoDucApp::eFileType::pdf);
+  		convertPdf2Txt();
+		}
+		else
+		{
+			m_bdApp.setFileType(bdAPI::BoDucApp::eFileType::csv);
+		}
+
+   	// number of files selected by user
 		m_fileLoaded = m_filesName.size();
 		m_bdApp.setNbSelectedFiles(m_fileLoaded);
 
@@ -928,5 +969,84 @@ namespace bdApp
 				}
 			}
 		}
+	}
+
+	void BoDucReportCreator::convertPdf2Txt()
+	{
+
+		// convert to txt file
+		const QString pythonScript = R"(F:\EllignoContract\BoDuc\pdfminerTxt\pdfminer-20140328\build/scripts-2.7\pdf2txt.py)";
+		const QString w_pdfilesPath = R"(F:\EllignoContract\BoDuc\QtTestGui\BoDucReportCreator\BoDucReportCreator\Data)"; // pdf files folder
+
+		QProcess w_process(this);
+		QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+		env.insert("PYTHONPATH", "C:\\Python27\\Lib");
+		env.insert("PYTHONHOME", "C:\\Python27");
+		w_process.setProcessEnvironment(env);
+		// Sets the working directory to dir. QProcess will start the process in this directory.
+		// The default behavior is to start the process in the working directory of the calling process.
+		w_process.setWorkingDirectory(w_pdfilesPath); // otherwise set path working dir of app
+
+		QStringList w_listofTxtFiles;
+		// number of files selected by user
+		QStringListIterator filesListIterator(m_filesName);
+		while (filesListIterator.hasNext())
+		{
+			// String list contains the whole path
+			QFileInfo w_fileInfo(filesListIterator.next());
+			QString w_fname = w_fileInfo.fileName();
+			QString w_bname = w_fileInfo.baseName();
+			QString w_absPath = w_fileInfo.absoluteFilePath();
+			QString w_complPdfFile = w_fname; // filename with corresponding extension
+			QString w_complTxtFile = w_bname + ".txt";
+			// Add a space at beginning of the file name 
+			QString w_txtPath = w_fileInfo.canonicalPath() + R"(/ )" + w_complTxtFile;
+			w_listofTxtFiles.push_back(w_txtPath);
+
+			QString w_ofile("-o ");
+			QStringList params;
+			//w_process.start("Python", params);
+			//			QStringList params;
+			//std::cout << filesListIterator.next().constData() << std::endl;
+			params << pythonScript << w_ofile + w_complTxtFile << w_complPdfFile;
+
+			w_process.start("Python", params);
+			if (w_process.waitForFinished(-1))
+			{
+				QByteArray p_stdout = w_process.readAll();
+				QByteArray p_stderr = w_process.readAllStandardError();
+				if (!p_stderr.isEmpty())
+					std::cout << "Python error:" << p_stderr.data();
+
+				//		qDebug() << "Python result=" << p_stdout;
+				if (!p_stdout.isEmpty())
+				{
+					std::cout << "Python conversion:" << p_stdout.data();
+				}
+				p_stdout; // write to console
+			}
+			// kill process
+			w_process.close();
+		}
+		// swap content, we are interested by .txt files (parsing) 
+		w_listofTxtFiles.swap(m_filesName);
+		// 		QDir w_checkFile(w_defaultDir);
+		// 		w_checkFile.cd("Data");
+		// 		QStringList w_dirList = w_checkFile.entryList();
+		// 		auto w_szz = w_dirList.size();
+		// 		for( const auto& w_fileName : w_dirList)
+		// 		{
+		// 			std::string w_str = w_fileName.toStdString();
+		// 			if( std::isspace(static_cast<char>(w_str[0])))
+		// 			{
+		// 				std::string w_noSpace(std::next(w_str.cbegin()), w_str.cend());
+		// 				QString w_newName(w_noSpace.c_str());
+		// 				w_checkFile.rename(w_fileName,QString("sas.txt"));
+		// 			}
+		// 		}
+
+		// Design Note
+		//  we need to change the extension of pdf file to be able to use our algorithm
+		//  for each of the file name in the list, retrieve extension 
 	}
 } // End of namespace

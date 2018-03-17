@@ -61,6 +61,12 @@ namespace bdAPI
 		// check the second lines for nb==4
 		if( aNbLines == 4)
 		{
+			// jani fix, not sure 
+			if( boost::contains( aVec[2], "*** COVILAC***"))
+			{
+				return std::vector<std::string>({ aVec[0],aVec[3] });;
+			}
+
 			std::string w_tmpStr = aVec[1]; // second line 
 			// split last lines with token ","
  			std::vector<std::string> w_splitVec;

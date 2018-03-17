@@ -126,5 +126,6 @@ namespace bdApp
 	private:
 		Ui::BoDucReportCreatorClass ui;
 		bdAPI::BoDucApp m_bdApp;
+		void convertPdf2Txt();
 	};
 } // End of namespace

@@ -8,7 +8,8 @@
 // App includes
 #include "BoDucParser.h"
 #include "BoDucFields.h"
-#include "BoDucBonLivraisonAlgorithm.h"
+#include "PdfMinerAlgo.h"
+//#include "BoDucBonLivraisonAlgorithm.h"
 
 namespace bdAPI 
 {
@@ -19,10 +20,29 @@ namespace bdAPI
 		while( w_begMap != aListOfCmd.cend()) // process each cmd parsed from csv file
 		{
 			vecofstr w_cmd2Proceed = w_begMap->second;
-			if( !useTM(w_cmd2Proceed))
+			if( PdfMinerAlgo* w_castCheck = dynamic_cast<PdfMinerAlgo*>(aBonLivraisonAlgo))
 			{
-				++w_begMap; // next in the list
-				continue; //"TM" not used in this command
+				auto begVec = w_cmd2Proceed.begin();
+				while( begVec != w_cmd2Proceed.cend())
+				{
+					if( boost::contains(*begVec, std::string("TM")) || boost::contains(*begVec, std::string("TON")))
+					{
+						//retTM = true;
+						break;
+					}
+					else
+					{
+						++begVec;
+					}
+				}
+			}
+			else
+			{
+				if( !useTM(w_cmd2Proceed))
+				{
+					++w_begMap; // next in the list
+					continue; //"TM" not used in this command
+				}
 			}
 
 			// filling the BoDuc struct	

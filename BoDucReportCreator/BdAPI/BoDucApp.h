@@ -15,6 +15,14 @@ namespace bdAPI
 {
 	class BoDucApp 
 	{
+	public:
+		// type of file (command)  
+		enum class eFileType 
+		{
+			csv=0, 
+			pdf=1
+		};
+
 		// alias for vector  
 		using vecofstr = std::vector<std::string>;
 		using mapIntVecstr = std::map<int, vecofstr>;
@@ -67,6 +75,10 @@ namespace bdAPI
 		// return the number of command that is being processed
 		size_t nbOfCmd( /*const std::string& aCmdFile*/);
 		size_t getNbCmdForThisFile( const std::string& aCmdFile);
+
+		void setFileType(eFileType aFileExt) { m_fileExt = aFileExt; }
+		eFileType getFileExt() const { return m_fileExt; }
+
 	private:
 		std::vector<std::string> m_vecfilePath;
 		std::string m_fileName;
@@ -79,5 +91,6 @@ namespace bdAPI
 		std::vector<BoDucFields> m_reportData;
 		BoDucBonLivraisonAlgorithm* m_bdParseAlgorithm;
 		unsigned short m_userSelectF;
+		eFileType m_fileExt;
 	};
 } // End of namespace
