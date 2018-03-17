@@ -12,6 +12,7 @@
 #include "BoDucParser.h"
 //#include "BoDucWriter.h"
 #include "VictoBonLivraison.h"
+#include "PdfMinerAlgo.h"
 
 namespace bdAPI 
 {
@@ -48,7 +49,19 @@ namespace bdAPI
 		// must be done outside of this method, this way we can set it from GUI user interface
     // user may want to use another algorithm for some reason, for now "VictoReader" seem  
 		// to work in most of cases, but it may change in the future.
-		BoDucDataAlgo w_bonLivraison = make_unique<VictoBonLivraison>();
+		BoDucDataAlgo w_bonLivraison = nullptr;  //make_unique<VictoBonLivraison>();
+		if( eFileType::csv==getFileExt())
+		{
+			w_bonLivraison.reset( new VictoBonLivraison());
+		}
+		else if( eFileType::pdf == getFileExt())
+		{
+			w_bonLivraison.reset( new PdfMinerAlgo());
+		}
+		else
+		{
+			return; // or set a default algo
+		}
 
 		auto w_filesInUse = getNbSelectedFiles();
 		
@@ -118,6 +131,13 @@ namespace bdAPI
 			}
 		}
 
+// 	  std::string w_fixName(" ");
+// 		if( !std::isspace( aFileAnPath.front(),std::locale()))
+// 		{
+// 		//	auto w_beg = std::next(aFileAnPath.begin());
+// 			//std::string w_fixName(" ");
+// 			w_fixName.append(aFileAnPath);
+// 		}
 		// Command in one file, reading the command by splitting with the "Ordered on"
 		short i(0); // set to zero as default, otherwise set to whatever comes up
 		ifstream w_readVSV(aFileAnPath.c_str());
@@ -136,6 +156,10 @@ namespace bdAPI
 						continue; // i don't see why we should increment it
 					}
 				}//if(i==0)
+				if( line.empty())
+				{
+					continue;
+				}
 				w_vecStr.push_back(line);
 
 				// NOTE we assume that we are at the last line of the command
@@ -184,8 +208,18 @@ namespace bdAPI
 		}//if
 	}
 
+	// Reading command file and fill the vector of string for each command.
+	// Added to a map to it is used  
 	void BoDucApp::readFiles( const std::list<std::string>& aFilesNameWithPath, const std::string& aSplitBill)
 	{
+		// Design Note:
+		//  We will need to add support to pdf files conversion. For now, 
+		//  we launch the python script for each file and produce a txt file. 
+		//  Steps
+		//  check files extension (must be all the same type) 
+		//  if pdf file, create a temporary list of the new converted files 
+		//  once its done process them 
+		//  
 		auto w_begListIter = aFilesNameWithPath.cbegin();
 		while( w_begListIter != aFilesNameWithPath.cend())
 		{

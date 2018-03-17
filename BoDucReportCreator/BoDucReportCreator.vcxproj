@@ -126,6 +126,8 @@
     <ClCompile Include="BdAPI\BoDucParser.cpp" />
     <ClCompile Include="BdAPI\BoDucReaderfix.cpp" />
     <ClCompile Include="BdAPI\BoDucUtility.cpp" />
+    <ClCompile Include="BdAPI\PdfMinerAlgo.cpp" />
+    <ClCompile Include="BdAPI\PdfMinerReader.cpp" />
     <ClCompile Include="BdAPI\VictoBonLivraison.cpp" />
     <ClCompile Include="BdAPI\VictoReader.cpp" />
     <ClCompile Include="BoDucReportCreator.cpp" />
@@ -151,6 +153,8 @@
     <ClInclude Include="BdAPI\BoDucParser.h" />
     <ClInclude Include="BdAPI\BoDucReaderfix.h" />
     <ClInclude Include="BdAPI\BoDucUtility.h" />
+    <ClInclude Include="BdAPI\PdfMinerAlgo.h" />
+    <ClInclude Include="BdAPI\PdfMinerReader.h" />
     <ClInclude Include="BdAPI\VictoBonLivraison.h" />
     <ClInclude Include="BdAPI\VictoReader.h" />
   </ItemGroup>
