@@ -75,6 +75,12 @@
     <ClCompile Include="BdAPI\PdfMinerReader.cpp">
       <Filter>BoDucAPI Files</Filter>
     </ClCompile>
+    <ClCompile Include="GeneratedFiles\qrc_BoDucReportCreator.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Release\moc_BoDucReportCreator.cpp">
+      <Filter>Form Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="BoDucReportCreator.h">
@@ -133,6 +139,9 @@
     </ClInclude>
     <ClInclude Include="BdAPI\PdfMinerReader.h">
       <Filter>BoDucAPI Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GeneratedFiles\ui_BoDucReportCreator.h">
+      <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -131,6 +131,8 @@
     <ClCompile Include="BdAPI\VictoBonLivraison.cpp" />
     <ClCompile Include="BdAPI\VictoReader.cpp" />
     <ClCompile Include="BoDucReportCreator.cpp" />
+    <ClCompile Include="GeneratedFiles\qrc_BoDucReportCreator.cpp" />
+    <ClCompile Include="GeneratedFiles\Release\moc_BoDucReportCreator.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -157,6 +159,7 @@
     <ClInclude Include="BdAPI\PdfMinerReader.h" />
     <ClInclude Include="BdAPI\VictoBonLivraison.h" />
     <ClInclude Include="BdAPI\VictoReader.h" />
+    <ClInclude Include="GeneratedFiles\ui_BoDucReportCreator.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
