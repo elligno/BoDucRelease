@@ -9,11 +9,6 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
     </Filter>
-    <Filter Include="Resource Files">
-      <UniqueIdentifier>{D9D6E242-F8AF-46E4-B9FD-80ECBC20BA3E}</UniqueIdentifier>
-      <Extensions>qrc;*</Extensions>
-      <ParseFiles>false</ParseFiles>
-    </Filter>
     <Filter Include="Form Files">
       <UniqueIdentifier>{99349809-55BA-4b9d-BF79-8FDBB0286EB3}</UniqueIdentifier>
       <Extensions>ui</Extensions>
@@ -75,11 +70,8 @@
     <ClCompile Include="BdAPI\PdfMinerReader.cpp">
       <Filter>BoDucAPI Files</Filter>
     </ClCompile>
-    <ClCompile Include="GeneratedFiles\qrc_BoDucReportCreator.cpp">
+    <ClCompile Include="GeneratedFiles\Debug\moc_BoDucReportCreator.cpp">
       <Filter>Generated Files</Filter>
-    </ClCompile>
-    <ClCompile Include="GeneratedFiles\Release\moc_BoDucReportCreator.cpp">
-      <Filter>Form Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -91,11 +83,6 @@
     <QtUic Include="BoDucReportCreator.ui">
       <Filter>Form Files</Filter>
     </QtUic>
-  </ItemGroup>
-  <ItemGroup>
-    <QtRcc Include="BoDucReportCreator.qrc">
-      <Filter>Resource Files</Filter>
-    </QtRcc>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BdAPI\AddressAlgorithm.h">

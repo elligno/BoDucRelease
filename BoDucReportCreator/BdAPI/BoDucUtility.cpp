@@ -1,5 +1,7 @@
 // C++ includes
+#include <Windows.h>
 #include <iostream>
+#include <codecvt>
 #include <vector>
 // boost includes
 #include <boost/lexical_cast.hpp>
@@ -210,4 +212,24 @@ std::string BoDucUtility::AddressFixAlgorithm(const std::vector<std::string> &w_
 	} //else
 
 	return w_complAddrs;
+}
+
+std::wstring BoDucUtility::ConvertFromUtf8ToUtf16(const std::string& str)
+{
+	std::wstring convertedString;
+	int requiredSize = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, 0, 0);
+	if (requiredSize > 0)
+	{
+		std::vector<wchar_t> buffer(requiredSize);
+		MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, &buffer[0], requiredSize);
+		convertedString.assign(buffer.begin(), buffer.end() - 1);
+	}
+
+	return convertedString;
+}
+std::wstring BoDucUtility::FromUtf8ToUtf16(const std::string & str)
+{
+	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> cwuf8;
+	std::wstring w_strConverted = cwuf8.from_bytes(str);
+	return w_strConverted;
 }

@@ -19,8 +19,8 @@ namespace bdAPI
 		// fix to address malfunctions
 		static std::string AddressFixAlgorithm( const std::vector<std::string> &w_vecOfAddressPart);
 		// read file of command
-//		static QList<QVector<QVariant>> readFileTab();
-		// split data separated by tab
-//		static void split( const std::string &s, char delim, std::vector<std::string> &elems);
+		std::wstring ConvertFromUtf8ToUtf16(const std::string& str);
+		// same as above but using C++11/14 features
+		static std::wstring FromUtf8ToUtf16(const std::string & str);
 	};
 } // End of namespace
