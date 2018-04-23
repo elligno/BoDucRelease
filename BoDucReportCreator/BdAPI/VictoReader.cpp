@@ -52,14 +52,14 @@
 
 			// string that should be pass to this method
 			string w_fieldValue = aCmdVec[linenb];
-			trim_right_if(w_fieldValue, is_any_of(","));
+			trim_right_if( w_fieldValue, is_any_of(","));
 			// splitting string to retrieve COxxxxx cmd no
 			vector<string> strs;
-			split(strs, w_fieldValue, is_any_of(","));
+			split( strs, w_fieldValue, is_any_of(","));
 
 			// not sure about this one, after this we should have a vector of 2 elements
 			// because our search is based on a line that contains a pair (Date,No)
-			strs.erase(remove_if(strs.begin(), strs.end(), // delete empty element
+			strs.erase( remove_if(strs.begin(), strs.end(), // delete empty element
 				[](const string& s)
 			{ return s.empty(); }), strs.cend());
 
@@ -67,6 +67,18 @@
 			if( starts_with(strs.back(), string("CO")))
 			{
 				aBoducF.m_noCmd = strs.back(); //assume that the last field is the right one
+			}
+			else
+			{
+				// check next line (Fuchs case where line before contains a Date keyword also)
+				linenb++;
+				string w_fieldValue = aCmdVec[linenb];
+				readNoCmd( w_fieldValue, aBoducF);
+				if( aBoducF.m_noCmd.empty())
+				{
+					// we didn't read cmd no correctly, must do some action 
+					aBoducF.m_noCmd = "xxxxxxxx";
+				}
 			}
 		}
 

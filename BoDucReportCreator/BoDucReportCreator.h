@@ -121,8 +121,8 @@ namespace bdApp
 		
 		// key is the unit no and all values for report creation
 		QMultiMap<QString, tplbonlivraison> m_unitBonLivraisonData;
-		QStringList m_listUniteAvailable = { QString("Unit 1"), QString("Unit 2"),
-			QString("Unit 3"), QString("Unit 4"), QString("Unit 5") };
+		QStringList m_listUniteAvailable = { QString("Unit 110"), QString("Unit 111"),
+			QString("Unit 112"), QString("Unit 115"), QString("Unit 117") };
 	private:
 		Ui::BoDucReportCreatorClass ui;
 		bdAPI::BoDucApp m_bdApp;

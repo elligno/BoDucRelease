@@ -61,7 +61,7 @@ namespace bdAPI
 		// check the second lines for nb==4
 		if( aNbLines == 4)
 		{
-			// jani fix, not sure 
+			// jani fix
 			if( boost::contains( aVec[2], "*** COVILAC***"))
 			{
 				return std::vector<std::string>({ aVec[0],aVec[3] });;

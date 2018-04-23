@@ -611,10 +611,10 @@ namespace bdApp
 		// create a layout for progress bar in a vertical layout
 		QVBoxLayout* w_vProgressBar = new QVBoxLayout;
 
-		addProgressBar(w_vProgressBar, std::string("Unite 1"));
-		addProgressBar(w_vProgressBar, std::string("Unite 2"));
-		addProgressBar(w_vProgressBar, std::string("Unite 3"));
-		addProgressBar(w_vProgressBar, std::string("Unite 4"));
+		addProgressBar(w_vProgressBar, std::string("Unite 110"));
+		addProgressBar(w_vProgressBar, std::string("Unite 111"));
+		addProgressBar(w_vProgressBar, std::string("Unite 112"));
+		addProgressBar(w_vProgressBar, std::string("Unite 115"));
 		m_uniteBox->setLayout(w_vProgressBar);
 	}
 	void BoDucReportCreator::addProgressBar( QBoxLayout* aProgressBar, const std::string& aUniteNb)

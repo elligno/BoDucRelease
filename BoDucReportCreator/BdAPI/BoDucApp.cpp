@@ -7,12 +7,26 @@
 // boost includes
 #include <boost/algorithm/string.hpp> // string algorithm
 #include <boost/algorithm/string/split.hpp> // splitting algo
+// Qt includes
+#include <QFile>
+#include <QFileInfo>
+#include <QTextStream>
+#include <QMessageBox>
 // app. includes
 #include "BoDucApp.h"
 #include "BoDucParser.h"
-//#include "BoDucWriter.h"
 #include "VictoBonLivraison.h"
 #include "PdfMinerAlgo.h"
+#include "BoDucUtility.h"
+
+// static declaration
+namespace { // check if it is a valid character
+	bool charPredicate(char c)
+	{
+		return !(isalpha(c) || c == '_');
+	}
+
+}
 
 namespace bdAPI 
 {
@@ -69,7 +83,7 @@ namespace bdAPI
 		{
 			// retrieve values 
 			w_boducParseAlgo.extractData(m_mapintVec, w_bonLivraison.get());
-			w_bonLivraison->getBoDucStruct(m_reportData);
+	//		w_bonLivraison->getBoDucStruct(m_reportData);
 		}
 		else
 		{
@@ -81,9 +95,13 @@ namespace bdAPI
 
 				// retrieve BoDuc fields
 				//std::vector<BoDucFields> w_testFields;
-				w_bonLivraison->getBoDucStruct(m_reportData);
+		//		w_bonLivraison->getBoDucStruct(m_reportData);
 			}
 		}
+		// TODO: Design Note
+		// shall be call outside the if-else to avoid to copy over and over
+		// only to do it once, algorithm instance takes care of pilling up
+		w_bonLivraison->getBoDucStruct(m_reportData);
 
 		// application stay open and you read files, BoDucApp never destroy
 		// then all member never get destroy or empty. Need to force empty.
@@ -99,67 +117,75 @@ namespace bdAPI
 		using namespace boost;
 		using namespace boost::algorithm;
 
-		// if we are processing multiple command one app is running
-		// means we may have processed a command file, just clear last.
-		if( !m_fileName.empty())
+		// create alias
+		using vecofstr = std::vector<std::string>;
+		
+		// lambda (anonymous) function declaration
+		auto checkTransportName = [](const std::string& aStr2Look) -> bool
+		{
+			// Transporteur name (BoDuc)
+			return (contains(aStr2Look, "NIR R-117971-3 TRSP CPB INC")
+				|| contains(aStr2Look, "NIR R-117971-3 TRANSPORT CPB")
+				|| contains(aStr2Look, "NIR R-117971-3 C.P.B.")
+				|| contains(aStr2Look, "BODUC- ST-DAMASE")
+				|| contains(aStr2Look, "NIR R-004489-2 TR. BO-DUC"));     //sometime we have empty (blank field) string
+		};
+
+		if (!m_fileName.empty())
 		{
 			m_fileName.clear();
 		}
 
-		// csv file that we are processing
-		m_fileName = aFileAnPath;
+		// check for accent in file name, if so fix it
+		if (std::find_if(aFileAnPath.cbegin(), aFileAnPath.cend(), charPredicate) != aFileAnPath.cend())
+		{
+			// we have special character, need to fix name without accent
+			std::wstring w_utf8FileName = BoDucUtility::FromUtf8ToUtf16(aFileAnPath);
+			m_fileName.assign(w_utf8FileName.cbegin(), w_utf8FileName.cend());
+		}
+		else
+		{
+			// csv file that we are processing
+			m_fileName.assign(aFileAnPath.cbegin(), aFileAnPath.cend());
+		}
 
-		// create alias
-		using vecofstr = std::vector<std::string>;
-
-		// declare vector to store our string from cvs document 
+		// declare vector to store our string from csv document 
 		vecofstr w_vecStr;
 		w_vecStr.reserve(50); // reserve enough space for storing each line ??
 
 		// first time we go through we fill the map
 		// but next we go in (didn't close the app),
 		// we must empty the container ... i do not understand
-		if( !m_mapintVec.empty())
+		if (!m_mapintVec.empty())
 		{
 			// clear all content
 			m_mapintVec.clear();
-			
+
 			// sanity check
-			if( m_mapintVec.size() != 0)
+			if (m_mapintVec.size() != 0)
 			{
 				std::cerr << "Map of lines not empty\n";
 			}
 		}
 
-// 	  std::string w_fixName(" ");
-// 		if( !std::isspace( aFileAnPath.front(),std::locale()))
-// 		{
-// 		//	auto w_beg = std::next(aFileAnPath.begin());
-// 			//std::string w_fixName(" ");
-// 			w_fixName.append(aFileAnPath);
-// 		}
 		// Command in one file, reading the command by splitting with the "Ordered on"
 		short i(0); // set to zero as default, otherwise set to whatever comes up
-		ifstream w_readVSV(aFileAnPath.c_str());
-		if( w_readVSV) // check if its open, then read line-by-line 
+		ifstream w_readVSV(m_fileName.c_str());
+		if (w_readVSV) // check if its open, then read line-by-line 
 		{
-			for( string line; std::getline(w_readVSV, line);)
+			for (string line; std::getline(w_readVSV, line);)
 			{
-				if(i == 0) // first line is obsolete
+				if (i == 0) // first line is obsolete
 				{
 					// check if contains "Ordered on" as first line
 					// NOTE "request-2.csv" we split the bill with this token, 
 					// and format was that first line contains this string
-					if( contains(line, "Ordered on"))
+					if (contains(line, "Ordered on"))
 					{
 						++i;  // next line
 						continue; // i don't see why we should increment it
 					}
 				}//if(i==0)
-				if( line.empty())
-				{
-					continue;
-				}
 				w_vecStr.push_back(line);
 
 				// NOTE we assume that we are at the last line of the command
@@ -168,44 +194,42 @@ namespace bdAPI
 				// IMPORTANT this algorithm assume that we are at the end or the 
 				// last line (split into separate command is based on this assumption)
 				// if not the case then it won't work!!
-				if( contains(line, aSplitBill))
+				if (contains(line, aSplitBill))
 				{
 					// check for carrier name some are different and don't need to be treated
 					// Francois mentioned that field can be blank, need to be careful
-					// Also, we must check also for the "TM" tonne metrique, if not present
-					// the cmd is discarded
-					// lambda (anonymous) function declaration
-					auto checkTransportName = [](const std::string& aStr2Look) -> bool     
-					{
-						// Transporteur name (BoDuc)
-						return (contains(aStr2Look, "NIR R-117971-3 TRSP CPB INC")
-							   || contains(aStr2Look, "NIR R-117971-3 TRANSPORT CPB")
-							   || contains(aStr2Look, "NIR R-117971-3 C.P.B.")
-							   || contains(aStr2Look, "BODUC- ST-DAMASE"));              // sometime we have empty (blank field) string
-					};
-
-					if( any_of( w_vecStr.cbegin(), w_vecStr.cend(), checkTransportName))
-// 						[](const std::string& aStr2Look) -> bool     // lambda (anonymous) function
-// 					{
-// 						// Transporteur name (BoDuc)
-// 						return (contains(aStr2Look, "NIR R-117971-3 TRSP CPB INC")
-// 							   || contains(aStr2Look, "NIR R-117971-3 TRANSPORT CPB")
-// 							   || contains(aStr2Look, "NIR R-117971-3 C.P.B."));      // sometime we have empty (blank field) string
-// 					}
-//					)//any_of
-//						)//if
+					if (any_of(w_vecStr.cbegin(), w_vecStr.cend(), checkTransportName))
 					{
 						m_mapintVec.insert(make_pair(i++, w_vecStr));
 						w_vecStr.clear();
 					}
 					else
 					{
-						/*w_mapofCmd.insert(std::make_pair(i++,w_vecStr));*/
+						QMessageBox w_msgBname;
+						QFileInfo w_filExtract(aFileAnPath.c_str());
+						const QString w_fileName = w_filExtract.fileName();
+						QString w_strMsg = QString("Not a valid transporteur name in ") + w_fileName;
+						w_msgBname.setText(w_strMsg);
+						w_msgBname.setIcon(QMessageBox::Warning);
+						w_msgBname.exec();
+						// ready for the next iteration
 						w_vecStr.clear();
 					}
 				}
 			}//for-loop
 		}//if
+		else // file could not be opened because name invalid or something else
+		{
+			QMessageBox msgBox;
+			QFileInfo w_filExtract(aFileAnPath.c_str());
+			const QString w_fileName = w_filExtract.fileName();
+			QString w_strMsg = QString("The document ") + w_fileName + QString(" could not be opened.");
+			msgBox.setText(w_strMsg);
+			msgBox.setInformativeText("We try to fix it, do you want to proceed?");
+			msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
+			msgBox.setIcon(QMessageBox::Warning);
+			int ret = msgBox.exec();
+		}
 	}
 
 	// Reading command file and fill the vector of string for each command.
