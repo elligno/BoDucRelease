@@ -17,6 +17,7 @@
 #include <QtCore/QTextStream>
 #include <QtCore/QFile>
 #include <QTextEdit>
+#include <QDateEdit>
 #include <QComboBox>
 #include <QProcess>
 #include <QLabel>
@@ -25,10 +26,26 @@
 #include <QDirIterator>
 #include <QFileDialog>
 #include <QFont>
+#include <QCheckBox>
+// Boost includes
+#include <boost/algorithm/string/replace.hpp>
+#include <boost/range/iterator_range.hpp>
+#include <boost/range/algorithm.hpp>
+#include <boost/algorithm/string.hpp>
+#include <boost/lambda/lambda.hpp>
+#include <boost/lambda/if.hpp>
+// test includes
 // Application include
 #include "BoDucReportCreator.h"
+#include "BdAPI/BoDucFields.h"
+#include "BdAPI/BoDucUtility.h"
 
 namespace {
+	constexpr bool gerater_than( const bdAPI::BoDucFields& aField, const bdAPI::BoDucFields& aField2)
+	{
+		return aField.m_qty > aField2.m_qty;
+	}
+
 	// Just some helpers to read file with data separated tab 
 	void split(const std::string &s, char delim, std::vector<std::string> &elems) {
 		std::stringstream ss;
@@ -81,18 +98,18 @@ namespace {
 			// always const and ref to avoid copy
 			for (const auto& v : row_values)
 			{
-				if (i == 3)
+				if (i == 3) // product code
 				{
 					int w_int = atoi(v.c_str());
 					w_vec2Fill.push_back(QVariant(w_int));
 				}
-				else if (i == 5)
+				else if (i == 5) // qty
 				{
 					// double value
 					double w_dbl = atof(v.c_str());
 					w_vec2Fill.push_back(QVariant(w_dbl));
 				}
-				else if (i == 6)
+				else if (i == 6) //silo number
 				{
 					int w_int = atoi(v.c_str());
 					w_vec2Fill.push_back(QVariant(w_int));
@@ -107,6 +124,136 @@ namespace {
 		}//while-loop
 
 		return w_list2Ret;
+	}
+	std::vector<bdAPI::BoDucFields> loadCmdReportInVector( const QString& aFilepath)
+	{
+		std::ifstream infile( aFilepath.toStdString().c_str());
+		if (!infile)
+		{
+			std::cerr << "Could not open file for reading\n";
+		}
+
+		std::vector<bdAPI::BoDucFields> w_vecBD;
+		w_vecBD.reserve(1000); // debugging purpose
+		std::string line;
+		std::vector<std::string> row_values;
+		auto lineCounter = 0;
+		while (std::getline(infile, line))
+		{
+			// header column name want to skip that
+			if (lineCounter == 0) { lineCounter += 1; continue; }
+			if (line.empty()) { continue; } // don't treat empty line
+																			// ...
+			if (!row_values.empty())
+			{
+				row_values.clear();
+			}
+			row_values.reserve(7); // number of fields
+
+			split(line, '\t', row_values);
+
+			// use the mode semantic of the vector
+			long w_prodCode = atoi(row_values[3].c_str());
+			float w_qty = atof(row_values[5].c_str());
+			w_vecBD.push_back( bdAPI::BoDucFields( std::make_tuple(row_values[0], row_values[1], row_values[2],
+				w_prodCode,row_values[4],w_qty,row_values[6])));
+		}
+		if (w_vecBD.capacity() > w_vecBD.size())
+		{
+			w_vecBD.shrink_to_fit();
+		}
+		return w_vecBD;
+	}
+
+	QList<QVector<QVariant>> fromBDFieldToQVariant( const std::vector<bdAPI::BoDucFields>& abdF)
+	{
+		QVector<QVariant> w_vec2Fill;
+		QList<QVector<QVariant>> w_listOfVariant;
+//		std::vector<std::string> row_values;
+		w_vec2Fill.reserve(7); // number of fields
+
+		auto lineCounter = 0;
+// 		while (std::getline(infile, line))
+// 		{
+			// header column name want to skip that
+// 			if (lineCounter == 0) { lineCounter += 1; continue; }
+// 			if (line.empty()) { continue; } // don't treat empty line
+																			// ...
+// 			if (!row_values.empty())
+// 			{
+// 				row_values.clear();
+// 			}
+// 			row_values.reserve(7); // number of fields
+
+//			split(line, '\t', row_values);
+			if (!w_vec2Fill.empty())
+			{
+				w_vec2Fill.clear();
+			}
+			auto i = 0;
+			// always const and ref to avoid copy
+			for (const auto& v : abdF)
+			{
+				w_vec2Fill.push_back(QVariant(v.m_noCmd.c_str())); //0
+				w_vec2Fill.push_back(QVariant(v.m_deliverTo.c_str())); //1
+				w_vec2Fill.push_back(QVariant(v.m_datePromise.c_str())); //2
+				w_vec2Fill.push_back(QVariant(v.m_prodCode));
+				w_vec2Fill.push_back(QVariant(v.m_produit.c_str()));//4
+				w_vec2Fill.push_back(QVariant(v.m_qty));
+				w_vec2Fill.push_back(QVariant(v.m_silo.c_str())); //6
+
+#if 0
+				if (i == 3) // product code
+				{
+	//				int w_int = atoi(v.m_prodCode.c_str());
+					w_vec2Fill.push_back(QVariant(v.m_prodCode));
+				}
+				else if (i == 5) // qty
+				{
+					// double value
+					//double w_dbl = atof(v.c_str());
+					w_vec2Fill.push_back(QVariant(v.m_qty));
+				}
+// 				else if (i == 6) //silo number
+// 				{
+// 					//int w_int = atoi(v.c_str());
+// 					w_vec2Fill.push_back(QVariant(v.m_silo.c_str()));
+// 				}
+				else
+				{
+					switch (i)
+					{
+					case 0:
+						w_vec2Fill.push_back(QVariant(v.m_noCmd.c_str())); //0
+						break;
+					case 1:
+						w_vec2Fill.push_back(QVariant(v.m_deliverTo.c_str())); //1
+						break;
+					case 2:
+						w_vec2Fill.push_back(QVariant(v.m_datePromise.c_str())); //2
+						break;
+					case 4:
+						w_vec2Fill.push_back(QVariant(v.m_produit.c_str()));//4
+						break;
+					case 6:
+						w_vec2Fill.push_back(QVariant(v.m_silo.c_str())); //6
+						break;
+					default:
+						break;
+					}
+					//w_vec2Fill.push_back(QVariant(v.m_noCmd.c_str())); //0
+					//w_vec2Fill.push_back(QVariant(v.m_deliverTo.c_str())); //1
+ 					//w_vec2Fill.push_back(QVariant(v.m_datePromise.c_str())); //2
+					//w_vec2Fill.push_back(QVariant(v.m_produit.c_str()));//4
+					//w_vec2Fill.push_back(QVariant(v.m_silo.c_str())); //6
+				}
+				++i;
+#endif
+			  w_listOfVariant.push_back(w_vec2Fill);
+				w_vec2Fill.clear();
+			}//for-loop
+
+			return w_listOfVariant;
 	}
 }// End of namespace
 
@@ -125,7 +272,9 @@ namespace bdApp
 		m_saveSelectBtn(Q_NULLPTR),
 		m_console(Q_NULLPTR),
 		m_bonCreateReport(Q_NULLPTR),
-		m_bonLivraisonFile("CommandReport.txt")
+		m_cptySelectBtn(Q_NULLPTR),
+		m_bonLivraisonFile("CommandReport.txt"),
+		m_displaySelect(eDisplayMode::all) // default
 	{
 		setWindowTitle("BdApp Bon De Livraison (creator)");
 
@@ -137,13 +286,35 @@ namespace bdApp
 		createLayout();
 		createConnections();
 
+		// fill all values load capacity for each unit
+		unitLoadConfig();
+
 		// set config of the progress bar 
 		initProgressBar();
 
+		// initialize some data structure ()
+		auto i=0;
+		QStringList::const_iterator w_begList = m_listUniteAvailable.cbegin();
+		while( w_begList != m_listUniteAvailable.cend())
+		{
+			QString w_unit = m_listUniteAvailable.value(i++);
+			QStringList w_splittedStr = w_unit.split(" ");
+			auto w_unitNo = w_splittedStr[1]; // white space should have 2 element 
+			std::vector<bdAPI::BoDucFields> w_vecofSSaved;
+			w_vecofSSaved.reserve(100);
+			if( m_cmdUnitSaved.insert( std::make_pair(w_unitNo.toInt(),w_vecofSSaved)).second==false)
+			{
+				// logger some message such as could not insert the following item
+				std::cout << "Could not insert cmd unit\n";
+			}
+			++w_begList;
+		}
+
+		// create the user interface
 		ui.setupUi(this);
 	}
 
-	// at the moment we support 4-5 unit just do a check on each of them
+	// at the moment we support 10 unit just do a check on each of them
 	// call when user select to save selection
 	void BoDucReportCreator::updateProgress()
 	{
@@ -174,30 +345,13 @@ namespace bdApp
 		}
 	}
 
+	// IMPORTANT maximum value foe each unit is determined by the time period (normal/degel)
+	// There is a document "Unite + capacite de charge.pdf" where specs for each mode is defined. 
+	// Each unit has its own value
 	// just configuring the progress bar to display
 	void BoDucReportCreator::initProgressBar()
 	{
-		// create all progress bar
-		for( auto i=0; i<m_numPbar;++i)
-		{
-			if (!m_progressBar[i]->isEnabled())
-			{
-				m_progressBar[i]->setEnabled(true);
-			}
-			if (m_progressBar[i]->value() != 0)
-			{
-				// set initial value
-				m_progressBar[i]->setValue(0.);
-			}
-			if (m_progressBar[i]->minimum() != 0)
-			{
-				m_progressBar[i]->setMinimum(0);
-			}
-			if (m_progressBar[i]->maximum() != 10)
-			{
-				m_progressBar[i]->setMaximum(10);
-			}
-		}
+		setUnitCapacityLoad();
 	}
 
 	void BoDucReportCreator::savetest()
@@ -217,9 +371,32 @@ namespace bdApp
 		else {
 			// do something else
 		}
-		// for now we are just testing, so we fill
-		// some data to test our implementation
-		//createTableWidget();
+
+		// Design Note
+		//  Since we want to create bon livraison with checked item
+		//  loop on all row and check 
+		auto w_rowCount = m_tblWidget->rowCount();
+		QTableWidgetItem* w_checkItem = m_tblWidget->item(0, 0);
+	
+		QVariant w_val = w_checkItem->data(Qt::DisplayRole);
+		QString w_curUnit = m_listUnite->currentText();
+		auto w_unitNo = w_curUnit.split(" ")[1]; // second is the number
+		unsigned w_No = w_unitNo.toUInt();
+		if (m_cmdUnitSaved.find(w_No) != m_cmdUnitSaved.cend())
+		{
+			std::vector<bdAPI::BoDucFields>& w_vec = m_cmdUnitSaved[w_No];
+			// need to fill vector with data
+			w_vec.push_back(bdAPI::BoDucFields());
+		}
+
+		if (w_checkItem!=nullptr)
+		{
+			if(w_checkItem->checkState() == Qt::CheckState::Checked)
+			{
+				// then save it to the 
+			}
+		}
+
 	}
 	// loading commands form file (created by the parser)
 	void BoDucReportCreator::open()
@@ -256,9 +433,43 @@ namespace bdApp
 				w_repDirName,
 				tr("Text (*.txt *.csv)"));
 		}
-		
-		m_read4test = readFileTab(w_filesName); // from file
-		createTableWidget();
+
+		// deprecated
+//		m_read4test = readFileTab(w_filesName); // from file
+		// deprecated
+//		createTableWidget();
+
+#if 1 // next version with sorted and duplicated vector
+	//	std::vector<bdAPI::BoDucFields> w_vectorOfCmd = m_bdApp.getReportData();
+		// we don' need that, because user is interested seeing data just processed
+		// no need to store data in a file (they are already in a vector and you read
+		// data from file and put it back in a vector). Unless user 
+		// Actually, we need this file because Francois use it to retrieve data from 
+		// pass days (for example a week ago), if we keep everything in memory, when 
+		// app close we loose all the information (save on hard disk).
+		if (!m_vectorOfCmd.empty())
+		{
+			m_vectorOfCmd.clear(); //empty last cmds
+		}
+		// show all cmd in the report files
+		m_vectorOfCmd = loadCmdReportInVector(w_filesName);
+//		remDuplicateAndSort(m_vectorOfCmd);
+//		fillTableWidget2Display();
+#endif
+	}
+
+	void BoDucReportCreator::setMode()
+	{
+		if (m_capacityLoad==eCapacityMode::normal)
+		{
+			m_cptySelectBtn->setText(QString("Degel Load"));
+			m_capacityLoad = eCapacityMode::degel;
+		}
+		else
+		{
+			m_cptySelectBtn->setText(QString("Normal Load"));
+			m_capacityLoad = eCapacityMode::normal;
+		}
 	}
 
   void BoDucReportCreator::currentUniteON()
@@ -321,7 +532,7 @@ namespace bdApp
 		QTableWidget*  w_tblWgt = aItem->tableWidget();
 		Q_ASSERT(w_tblWgt != Q_NULLPTR);
 		QItemSelectionModel* select = w_tblWgt->selectionModel();
-		if (select->hasSelection())
+		if( select->hasSelection())
 		{
 			//return selected row
 			QModelIndexList w_mdl = select->selectedRows();
@@ -334,25 +545,30 @@ namespace bdApp
 			QMap<int, tplbonlivraison> w_checkMap;
 
 			// fill the struct for report
-			for (auto col = 0; col < w_tblWgt->columnCount(); ++col)
+			for( auto col = 0; col < w_tblWgt->columnCount(); ++col)
 			{
 				QTableWidgetItem* w_chckItem = w_tblWgt->item(m_currowNoSelected, col);
 				QVariant w_val = w_chckItem->data(Qt::DisplayRole);
+
 				// BoDuc selection
 				if (col == 1)
 				{
+					// shippedTo
 					std::get<0>(m_bdBonFields) = w_val.toString();
 				}
 				else if (col == 4)
 				{
+					// product description
 					std::get<1>(m_bdBonFields) = w_val.toString();
 				}
 				else if (col == 5)
 				{
+					// quantity
 					std::get<2>(m_bdBonFields) = w_val.toDouble();
 				}
 				else if (col == 6)
 				{
+					// silo
 					std::get<3>(m_bdBonFields) = w_val.toInt();
 				}
 
@@ -360,23 +576,56 @@ namespace bdApp
 				// add it to the list
 			}
 
-			// just a test
 			w_checkMap.insert(m_currowNoSelected, m_bdBonFields);
+
 			// store all data selected by user to be retrieved 
 			// when creating bon de livraison (file format) 
 			// key is the unit name that is currently selected
 			m_unitBonLivraisonData.insert(m_currUnityON, m_bdBonFields);
 		}
 	}
+#if 0 // new version
+	void BoDucReportCreator::itemSelected( QTableWidgetItem * aItem)
+	{
+		QTableWidget*  w_tblWgt = aItem->tableWidget();
+		Q_ASSERT(w_tblWgt != Q_NULLPTR);
+
+		bdAPI::BoDucFields w_field;
+		w_field.m_noCmd = w_val.toString().toStdString();
+
+		QItemSelectionModel* select = w_tblWgt->selectionModel();
+		if (select->hasSelection())
+		{
+			//return selected row
+			QModelIndexList w_mdl = select->selectedRows();
+			auto w_rowSiz = w_mdl.size();
+
+			m_currowNoSelected = aItem->row();
+			QVector<QVariant> w_cmd2Report;
+			w_cmd2Report.reserve(w_tblWgt->columnCount());
+		}
+		// just a test
+		QString w_curUnit = m_listUnite->currentText();
+		auto w_unitNo = w_curUnit.split(" ")[1]; // second is the number
+		unsigned w_No = w_unitNo.toUInt();
+		if (m_cmdUnitSaved.find(w_No) != m_cmdUnitSaved.cend())
+		{
+			std::vector<bdAPI::BoDucFields>& w_vec = m_cmdUnitSaved[w_No];
+			// need to fill vector with data
+			w_vec.push_back(bdAPI::BoDucFields());
+		}
+	}
+#endif // end of new version
 	void BoDucReportCreator::setupViews()
 	{
-		m_tblWidget = new QTableWidget(200, 7, this); //
+		m_tblWidget = new QTableWidget(200, 8, this); //
 		m_tblWidget->setHorizontalHeaderLabels(QStringList() //<< tr("Selected")
+			<< tr("Cmd Status")
 			<< tr("No Command")
 			<< tr("Shipped To")
 			<< tr("Delivery date")
-			<< tr("Code")
-			<< tr("Product")
+			<< tr("Product Code")
+			<< tr("Product Descr")
 			<< tr("Quantity")
 			<< tr("Silo"));
 		m_tblWidget->verticalHeader()->setVisible(false);
@@ -403,7 +652,7 @@ namespace bdApp
 	void BoDucReportCreator::createTableWidget()
 	{
 		auto i = 0; // create each row of the table
-		for (const QVector<QVariant>& w_vecVariant : m_read4test)
+		for( const QVector<QVariant>& w_vecVariant : m_read4test)
 		{
 			QTableWidgetItem* myTableWidgetItem = Q_NULLPTR;
 			for (auto j = 0; j < m_tblWidget->columnCount(); ++j)
@@ -415,6 +664,37 @@ namespace bdApp
 			}
 			++i;
 		}
+	}
+	void BoDucReportCreator::fillTableWidget2Display()
+	{
+		// fill displayed table with displayed vector of cmd 
+		//QList<QVector<QVariant>> w_listOfVariant = fromBDFieldToQVariant(m_vectorOfCmd);
+		QList<QVector<QVariant>> w_listOfVariant = fromBDFieldToQVariant(m_vecOfCmd2Display);
+
+		auto i = 0; // create each row of the table
+		for (const QVector<QVariant>& w_vecVariant : w_listOfVariant)
+		{
+			QTableWidgetItem* myTableWidgetItem = Q_NULLPTR;
+			for( auto j = 0; j < m_tblWidget->columnCount(); ++j)
+			{
+				myTableWidgetItem = new QTableWidgetItem;     // i am not sure about this one
+				// case  j==0, user check box in the first column
+				if( j == 0)
+				{
+				//	myTableWidgetItem->setData(Qt::Unchecked, Qt::CheckStateRole);
+					myTableWidgetItem->setFlags(myTableWidgetItem->flags() | Qt::ItemIsUserCheckable);
+					myTableWidgetItem->setCheckState(Qt::Unchecked);
+					m_tblWidget->setItem(i, 0, myTableWidgetItem);
+					continue;
+				}
+			  //myTableWidgetItem->data(Qt::CheckStateRole);   
+				myTableWidgetItem->setData(Qt::DisplayRole, w_vecVariant[j-1]);
+				m_tblWidget->setItem(i, j, myTableWidgetItem);
+			}
+			++i;
+		}
+
+		// clear all data in the vector cmd to display ready for next query
 	}
 	// Top group box, actually it's the original buttons layout
 	// Open, load, save, process (buttons)
@@ -494,54 +774,87 @@ namespace bdApp
 	}
 	QGroupBox* BoDucReportCreator::createCreatorBox()
 	{
-		// Create a first row of buttons
-		QHBoxLayout* w_buttonsTop = new QHBoxLayout;
+		// First Row
+		QBoxLayout* w_row1 = createHBoxLayoutRow1();
+
+		// Second row
+		QHBoxLayout* w_buttonsBot = new QHBoxLayout;
 
 		// List of unite available
-		QLabel* w_listUniteLabl = new QLabel(tr("Unite Selectionne"));
-		m_listUnite = new QComboBox;
+		QLabel* w_dateLabl = new QLabel(tr("Date Selectionne"));
+		QVBoxLayout* w_date2show = new QVBoxLayout;
+		m_dateSelect = new QDateEdit;
+		m_dateSelect->setCalendarPopup(true); // not what it does?
+		QDate w_minDate(QDate::currentDate());
+		//w_minDate.addMonths(-6);
+		m_dateSelect->setMinimumDate(w_minDate.addMonths(-2));
+	
+		w_date2show->addWidget(w_dateLabl);
+		w_date2show->addWidget(m_dateSelect);
+		// horizontal box layout 
+		w_buttonsBot->addLayout(w_date2show);
 
-		m_listUnite->addItems(m_listUniteAvailable);
+		QLabel* w_dateRngLbl = new QLabel(tr("Date Range"));
+		QVBoxLayout* w_vDateRngBox = new QVBoxLayout;
+		m_dateMinSelected = new QDateEdit;
+		m_dateMinSelected->setCalendarPopup(true);
+		m_dateMinSelected->setMinimumDate(w_minDate.addMonths(-6));
+	  m_dateMaxSelected = new QDateEdit;
+		m_dateMaxSelected->setCalendarPopup(true);
+		m_dateMaxSelected->setMinimumDate(w_minDate.addMonths(-6));
+		w_vDateRngBox->addWidget(w_dateRngLbl);
+		w_vDateRngBox->addWidget(m_dateMinSelected);
+		w_vDateRngBox->addWidget(m_dateMaxSelected);
+		w_buttonsBot->addLayout(w_vDateRngBox);
 
-		QVBoxLayout* w_uniteComboBox = new QVBoxLayout;
-		w_uniteComboBox->addWidget(w_listUniteLabl);
-		w_uniteComboBox->addWidget(m_listUnite);
-	//	w_uniteComboBox->addStretch(1);
-		w_buttonsTop->addLayout(w_uniteComboBox);
+		QLabel* w_showLbl = new QLabel(tr("Show Selection"));
+		QVBoxLayout* w_vBox2Show = new QVBoxLayout;
+		m_showButton = new QPushButton(tr("Show"));
+		QHBoxLayout* w_checkHBox = new QHBoxLayout;
 
-		// set the current unite that is activated as default
-		int w_uniteCurrent = m_listUnite->currentIndex(); // user choice
-		m_currUnityON = m_listUnite->itemText(w_uniteCurrent);
+		m_date2Check = new QCheckBox;
+		m_date2Check->setCheckable(true);
+		m_date2Check->setCheckState(Qt::Unchecked);
+		w_checkHBox->addWidget(m_date2Check);
+		QLabel* w_dateHLbl = new QLabel(tr("Date"));
+		w_checkHBox->addWidget(w_dateHLbl);
+		
+		m_rngDate2Check = new QCheckBox;
+		m_rngDate2Check->setCheckable(true);
+		m_rngDate2Check->setCheckState(Qt::Unchecked);
+		w_checkHBox->addWidget(m_rngDate2Check);
+		QLabel* w_rngDateHLbl = new QLabel(tr("Range Date"));
+		w_checkHBox->addWidget(w_rngDateHLbl);
+// 		w_vBox2Show->addWidget(w_showLbl);
+// 		w_vBox2Show->addWidget(m_showButton);
+// 		w_vBox2Show->addLayout(w_checkHBox);
+// 		w_buttonsBot->addLayout(w_vBox2Show);
 
-		QLabel* w_loadCmd = new QLabel(tr("Load Command Report"));
-		m_loadButton = new QPushButton(tr("Open")); // open file for reading command from report file 
-		QVBoxLayout* w_readCmd = new QVBoxLayout;
-		w_readCmd->addWidget(w_loadCmd);
-		w_readCmd->addWidget(m_loadButton);
-//		w_readCmd->addStretch(3);
-		w_buttonsTop->addLayout(w_readCmd);
+		m_allDateCheck = new QCheckBox;
+		m_allDateCheck->setCheckable(true);
+		m_allDateCheck->setCheckState(Qt::Unchecked);
+		w_checkHBox->addWidget(m_allDateCheck);
+		QLabel* w_allDataLbl = new QLabel(tr("All date"));
+		w_checkHBox->addWidget(w_allDataLbl);
 
-		QLabel* w_createBon = new QLabel(tr("Cree Bon Livraison"));
-		QVBoxLayout* w_bonCreator = new QVBoxLayout;
-		w_bonCreator->addWidget(w_createBon);
-		// 		QComboBox* w_listCbox = new QComboBox;
-		// 		w_listCbox->addItems(w_listUniteAvailable);
-		m_bonCreateReport = new QPushButton("Proceed");
-		w_bonCreator->addWidget(m_bonCreateReport);
-	//	w_bonCreator->addStretch(2);
-		w_buttonsTop->addLayout(w_bonCreator);
+		w_vBox2Show->addWidget(w_showLbl);
+		w_vBox2Show->addWidget(m_showButton);
+		w_vBox2Show->addLayout(w_checkHBox);
+		w_buttonsBot->addLayout(w_vBox2Show);
 
-		// Save selection
-		QLabel* w_lblsaveSelect = new QLabel(tr("Save Selection"));
-		QVBoxLayout* w_hboxsaveSelection = new QVBoxLayout;
-		w_hboxsaveSelection->addWidget(w_lblsaveSelect);
-		m_saveSelectBtn = new QPushButton("Save Select");
-		w_hboxsaveSelection->addWidget(m_saveSelectBtn);
-	//	w_hboxsaveSelection->addStretch(2);
-		w_buttonsTop->addLayout(w_hboxsaveSelection);
+		QLabel* w_clearLbl = new QLabel(tr("Clear Selection"));
+		QVBoxLayout* w_clearSelect = new QVBoxLayout;
+		m_clearButton = new QPushButton(tr("Clear"));
+		w_clearSelect->addWidget(w_clearLbl);
+		w_clearSelect->addWidget(m_clearButton);
+		w_buttonsBot->addLayout(w_clearSelect);
+
+		QGridLayout* w_gridLayout = new QGridLayout;
+		w_gridLayout->addLayout(w_row1, 0, 0);
+		w_gridLayout->addLayout(w_buttonsBot, 1, 0);
 
 		// now set our box 
-		m_creatorBox->setLayout(w_buttonsTop);
+		m_creatorBox->setLayout(w_gridLayout);
 
 		return m_creatorBox;
 	}
@@ -557,7 +870,7 @@ namespace bdApp
 		m_dialogButtonBox = new QDialogButtonBox;
 		//m_saveButton = m_buttonBox->addButton(QDialogButtonBox::Save);
 		m_closeButton = m_dialogButtonBox->addButton(QDialogButtonBox::Close);
-		m_clearButton = m_dialogButtonBox->addButton(QDialogButtonBox::Cancel);
+		m_cancelButton = m_dialogButtonBox->addButton(QDialogButtonBox::Cancel);
 	}
 	void BoDucReportCreator::createLayout()
 	{
@@ -596,15 +909,24 @@ namespace bdApp
 	}
 	void BoDucReportCreator::setHProgressBar()
 	{
+		QVBoxLayout* w_vlayoutPbar = new QVBoxLayout;
 		// create a layout for progress bar in a vertical layout
-		QHBoxLayout* w_hProgressBar = new QHBoxLayout;
-
-		addProgressBar(w_hProgressBar, m_listUniteAvailable.at(0).toStdString().c_str());
-		addProgressBar(w_hProgressBar, m_listUniteAvailable.at(1).toStdString().c_str());
-		addProgressBar(w_hProgressBar, m_listUniteAvailable.at(2).toStdString().c_str());
-		addProgressBar(w_hProgressBar, m_listUniteAvailable.at(3).toStdString().c_str());
-		addProgressBar(w_hProgressBar, m_listUniteAvailable.at(4).toStdString().c_str());
-		m_uniteBox->setLayout(w_hProgressBar);
+		QHBoxLayout* w_hProgressBar1 = new QHBoxLayout;
+		addProgressBar(w_hProgressBar1, m_listUniteAvailable.at(0).toStdString().c_str());
+		addProgressBar(w_hProgressBar1, m_listUniteAvailable.at(1).toStdString().c_str());
+		addProgressBar(w_hProgressBar1, m_listUniteAvailable.at(2).toStdString().c_str());
+		addProgressBar(w_hProgressBar1, m_listUniteAvailable.at(3).toStdString().c_str());
+		addProgressBar(w_hProgressBar1, m_listUniteAvailable.at(4).toStdString().c_str());
+	//	m_uniteBox->setLayout(w_hProgressBar);
+		w_vlayoutPbar->addLayout(w_hProgressBar1);
+		QHBoxLayout* w_hProgressBar2 = new QHBoxLayout;
+		addProgressBar(w_hProgressBar2, m_listUniteAvailable.at(5).toStdString().c_str());
+		addProgressBar(w_hProgressBar2, m_listUniteAvailable.at(6).toStdString().c_str());
+		addProgressBar(w_hProgressBar2, m_listUniteAvailable.at(7).toStdString().c_str());
+		addProgressBar(w_hProgressBar2, m_listUniteAvailable.at(8).toStdString().c_str());
+		addProgressBar(w_hProgressBar2, m_listUniteAvailable.at(9).toStdString().c_str());
+		w_vlayoutPbar->addLayout(w_hProgressBar2);
+		m_uniteBox->setLayout(w_vlayoutPbar);
 	}
 	void BoDucReportCreator::setUniteBox()
 	{
@@ -635,6 +957,21 @@ namespace bdApp
 		else if (QHBoxLayout* w_lablandLayout1 = dynamic_cast<QHBoxLayout*>(aProgressBar))
 		{
 			QLabel* w_barlbl = new QLabel(tr(aUniteNb.c_str()));
+//			short i = 0;
+		//	static_assert(i < 10 && "");
+
+// 			for (const QString& w_unit : m_listUniteAvailable)
+// 			{
+				if (m_unitIndex >=0 && m_unitIndex<m_nbUnit)
+				{
+					m_progressBar[m_unitIndex] = new QProgressBar;
+					w_lablandLayout1->addWidget(w_barlbl);
+					w_lablandLayout1->addWidget(m_progressBar[m_unitIndex++]);
+					aProgressBar->addStretch(1);
+					aProgressBar->addLayout(w_lablandLayout1);
+				}
+// 			}
+#if 0
 			if (QString::compare(m_listUniteAvailable.at(0), QString(aUniteNb.c_str())) == 0)
 			{
 				m_progressBar[0] = new QProgressBar;
@@ -679,6 +1016,8 @@ namespace bdApp
 		else
 		{
 			return;
+		}
+#endif
 		}
 	}
 	void BoDucReportCreator::setTableWidgetBox()
@@ -855,17 +1194,22 @@ namespace bdApp
 	void BoDucReportCreator::createConnections()
 	{
 		QObject::connect( m_closeButton,     SIGNAL(clicked()),                      this, SLOT(close()));
-		QObject::connect( m_clearButton,     SIGNAL(clicked()),                      this, SLOT(cancel()));
+		QObject::connect( m_cancelButton,     SIGNAL(clicked()),                      this, SLOT(cancel()));
 		QObject::connect( m_loadButton,      SIGNAL(clicked()),                      this, SLOT(open()));
 		QObject::connect( m_bonCreateReport, SIGNAL(clicked()),                      this, SLOT(createBonReport()));
 		QObject::connect( m_listUnite,       SIGNAL(activated(int)),                 this, SLOT(currentUniteON()));
 		QObject::connect( m_saveSelectBtn,   SIGNAL(clicked()),                      this, SLOT(savetest()));
+		QObject::connect( m_cptySelectBtn,   SIGNAL(clicked()),                      this, SLOT(setMode()));
 		QObject::connect( m_tblWidget,       SIGNAL(itemClicked(QTableWidgetItem*)), this, SLOT(testItemClick(QTableWidgetItem*)));
+		QObject::connect( m_showButton,       SIGNAL(clicked()),                      this, SLOT(showCmd()));
+		QObject::connect( m_clearButton,      SIGNAL(clicked()),                      this, SLOT(clearDispalyedCmd()));
+//		QObject::connect(m_clearButton,      SIGNAL(clicked()),                      this, SLOT(removeRow(int)));
+		QObject::connect( m_allDateCheck,     SIGNAL(stateChanged()),                 this, SLOT(allDateChecked()));
 		// Analyze buttons
-		QObject::connect(m_saveButton,        SIGNAL(clicked()), this, SLOT(saveCmdToFile()));   //save file name
-		QObject::connect(m_procButton,        SIGNAL(clicked()), this, SLOT(parseCmd()));        // do some processing
-		QObject::connect(m_analyzeLoadButton, SIGNAL(clicked()), this, SLOT(loadCmdFromFile())); // set file name to be read
-		QObject::connect(m_openButton,        SIGNAL(clicked()), this, SLOT(OpenCsvFile()));     //
+		QObject::connect( m_saveButton,        SIGNAL(clicked()), this, SLOT(saveCmdToFile()));   //save file name
+		QObject::connect( m_procButton,        SIGNAL(clicked()), this, SLOT(parseCmd()));        // do some processing
+		QObject::connect( m_analyzeLoadButton, SIGNAL(clicked()), this, SLOT(loadCmdFromFile())); // set file name to be read
+		QObject::connect( m_openButton,        SIGNAL(clicked()), this, SLOT(OpenCsvFile()));     //
 	}
 	void BoDucReportCreator::createDataReport()
 	{
@@ -971,9 +1315,53 @@ namespace bdApp
 		}
 	}
 
+	void bdApp::BoDucReportCreator::unitLoadConfig()
+	{
+		m_listLoadValuesPerUnit.push_back( std::make_tuple( 30,  17.,  14.));
+		m_listLoadValuesPerUnit.push_back( std::make_tuple( 33,  31.,  25.));
+		m_listLoadValuesPerUnit.push_back( std::make_tuple( 103, 32.,  25.));
+		m_listLoadValuesPerUnit.push_back( std::make_tuple( 110, 32.,  25.));
+		m_listLoadValuesPerUnit.push_back( std::make_tuple( 111, 26.,  21.));
+		m_listLoadValuesPerUnit.push_back( std::make_tuple( 112, 38.5, 32.));
+		m_listLoadValuesPerUnit.push_back( std::make_tuple( 114, 38.5, 31.));
+		m_listLoadValuesPerUnit.push_back( std::make_tuple( 115, 32.,  25.));
+		m_listLoadValuesPerUnit.push_back( std::make_tuple( 116, 14.,  11.));
+		m_listLoadValuesPerUnit.push_back( std::make_tuple( 117, 38.5, 32.));
+	}
+
+	void bdApp::BoDucReportCreator::setUnitCapacityLoad()
+	{
+		short i = 0;
+		std::for_each( m_listLoadValuesPerUnit.cbegin(), m_listLoadValuesPerUnit.cend(),
+			[this,&i]( const tplunitAndLoad& aUnitLoad)
+		{
+			if (!m_progressBar[i]->isEnabled())
+			{
+				m_progressBar[i]->setEnabled(true);
+			}
+			if (m_progressBar[i]->value() != 0)
+			{
+				// set initial value
+				m_progressBar[i]->setValue(0);
+			}
+			if (m_progressBar[i]->minimum() != 0)
+			{
+				m_progressBar[i]->setMinimum(0);
+			}
+
+			if (m_capacityLoad == eCapacityMode::normal)
+			{
+				m_progressBar[i++]->setMaximum(std::get<1>(aUnitLoad));
+			}
+			else // degel
+			{
+				m_progressBar[i++]->setMaximum(std::get<2>(aUnitLoad));
+			}
+		});
+	}
+
 	void BoDucReportCreator::convertPdf2Txt()
 	{
-
 		// convert to txt file
 		const QString pythonScript = R"(F:\EllignoContract\BoDuc\pdfminerTxt\pdfminer-20140328\build/scripts-2.7\pdf2txt.py)";
 		const QString w_pdfilesPath = R"(F:\EllignoContract\BoDuc\QtTestGui\BoDucReportCreator\BoDucReportCreator\Data)"; // pdf files folder
@@ -1049,4 +1437,237 @@ namespace bdApp
 		//  we need to change the extension of pdf file to be able to use our algorithm
 		//  for each of the file name in the list, retrieve extension 
 	}
+
+  QBoxLayout* BoDucReportCreator::createHBoxLayoutRow1()
+	{
+		// Create a first row of buttons
+		QHBoxLayout* w_buttonsTop = new QHBoxLayout;
+
+		// List of unite available
+		QLabel* w_listUniteLabl = new QLabel(tr("Unite Selectionne"));
+		m_listUnite = new QComboBox;
+
+		m_listUnite->addItems(m_listUniteAvailable);
+
+		QVBoxLayout* w_uniteComboBox = new QVBoxLayout;
+		w_uniteComboBox->addWidget(w_listUniteLabl);
+		w_uniteComboBox->addWidget(m_listUnite);
+		//	w_uniteComboBox->addStretch(1);
+		w_buttonsTop->addLayout(w_uniteComboBox);
+
+		// set the current unite that is activated as default
+		int w_uniteCurrent = m_listUnite->currentIndex(); // user choice
+		m_currUnityON = m_listUnite->itemText(w_uniteCurrent);
+
+		QLabel* w_loadCmd = new QLabel(tr("Load Command Report"));
+		m_loadButton = new QPushButton(tr("Open")); // open file for reading command from report file 
+		QVBoxLayout* w_readCmd = new QVBoxLayout;
+		w_readCmd->addWidget(w_loadCmd);
+		w_readCmd->addWidget(m_loadButton);
+		//		w_readCmd->addStretch(3);
+		w_buttonsTop->addLayout(w_readCmd);
+
+		QLabel* w_createBon = new QLabel(tr("Cree Bon Livraison"));
+		QVBoxLayout* w_bonCreator = new QVBoxLayout;
+		w_bonCreator->addWidget(w_createBon);
+		// 		QComboBox* w_listCbox = new QComboBox;
+		// 		w_listCbox->addItems(w_listUniteAvailable);
+		m_bonCreateReport = new QPushButton("Proceed");
+		w_bonCreator->addWidget(m_bonCreateReport);
+		//	w_bonCreator->addStretch(2);
+		w_buttonsTop->addLayout(w_bonCreator);
+
+		// Save selection
+		QLabel* w_lblsaveSelect = new QLabel(tr("Save Selection"));
+		QVBoxLayout* w_hboxsaveSelection = new QVBoxLayout;
+		w_hboxsaveSelection->addWidget(w_lblsaveSelect);
+		m_saveSelectBtn = new QPushButton("Save Select");
+		w_hboxsaveSelection->addWidget(m_saveSelectBtn);
+		//	w_hboxsaveSelection->addStretch(2);
+		w_buttonsTop->addLayout(w_hboxsaveSelection);
+
+		// load capacity mode
+		QLabel* w_lblModeSelect = new QLabel(tr("Capacity Mode"));
+		QVBoxLayout* w_hboxmodeSelection = new QVBoxLayout;
+		w_hboxmodeSelection->addWidget(w_lblModeSelect);
+		if (m_capacityLoad == eCapacityMode::normal) // default mode
+		{
+			m_cptySelectBtn = new QPushButton("Normal Load");
+		}
+		else
+		{
+			m_cptySelectBtn = new QPushButton("Degel Load");
+		}
+		w_hboxmodeSelection->addWidget(m_cptySelectBtn);
+		w_buttonsTop->addLayout(w_hboxmodeSelection);
+
+		// now set our box 
+		//		m_creatorBox->setLayout(w_buttonsTop);
+
+		return w_buttonsTop;
+	}
+
+	void BoDucReportCreator::remDuplicateAndSort(std::vector<bdAPI::BoDucFields>& aVecTotrim)
+	{
+		// need to check if we have duplicate (compare command number)
+		std::sort(aVecTotrim.begin(), aVecTotrim.end(),
+			[](bdAPI::BoDucFields& aField1, bdAPI::BoDucFields& aField2) -> bool
+		{
+			return std::greater<std::string>().operator()(aField1.m_noCmd, aField2.m_noCmd);
+		});
+
+		// remove all duplicate
+		aVecTotrim.erase( std::unique(aVecTotrim.begin(), aVecTotrim.end()), aVecTotrim.cend());
+
+		// trimming data before displaying in the GUI
+		std::for_each( aVecTotrim.begin(), aVecTotrim.end(),
+			[](bdAPI::BoDucFields& aBdField)
+		{
+			// Sorting dates represented as a string of the form YYYYMMDD 
+			// or an integer whose decimal representation is YYYYMMDD is trivial. 
+			// Just use std::sort and you will get the correct sort order.
+			// First remove the back slash
+			boost::algorithm::replace_all(aBdField.m_datePromise, R"(/)", "");
+		});
+
+#if _DEBUG
+		std::cout << "Back slash removed\n";
+		for (const auto& val : aVecTotrim)
+		{
+			std::cout << val;
+		}
+#endif
+		// ready to sort by date since we have only unique command
+		std::cout << "We are ready to sort our vector\n";
+		std::sort(aVecTotrim.begin(), aVecTotrim.end()); // ascending order less recent to more recent
+	  // need to reverse the order of the vector (descending order)
+		std::reverse( std::begin(aVecTotrim), std::end(aVecTotrim)); // reverse the order more recent to less 
+
+		// now we need to put back slash back
+		auto putItBack = [](bdAPI::BoDucFields& aStr) // lambda
+		{
+			aStr.m_datePromise = aStr.m_datePromise.substr(0, 4) + R"(/)" +
+				aStr.m_datePromise.substr(4, 2) + R"(/)" +
+				aStr.m_datePromise.substr(6, 2);
+		};
+		std::for_each(aVecTotrim.begin(), aVecTotrim.end(), putItBack);
+#if _DEBUG
+		std::for_each(aVecTotrim.cbegin(), aVecTotrim.cend(), std::cout << boost::lambda::_1 << "\n");
+#endif
+	}
+
+	void BoDucReportCreator::showCmd()
+	{
+		// create a vector of BoDucFields cmd to show
+		// switch case with 3 choices: all, date and date range
+     // get date from selection
+		// compare date with 
+		remDuplicateAndSort(m_vectorOfCmd);
+
+		// check box state to display mode 
+    if (m_allDateCheck->isChecked())
+    {
+			m_displaySelect = eDisplayMode::all;
+			m_vecOfCmd2Display = m_vectorOfCmd;
+    }
+		else if (m_date2Check->isChecked())
+		{
+			m_displaySelect = eDisplayMode::date;
+
+			// retrieve the selected date in a given format 
+			QDate w_testDate = m_dateSelect->date();
+			QString w_fmtDate = w_testDate.toString(QString("yyyyMMdd"));
+			// now select only those that satisfied the selected date
+			for (const auto& val : m_vectorOfCmd)
+			{
+				std::string w_cpyDate = boost::replace_all_copy( val.m_datePromise, R"(/)", "");
+
+				// loop on the cmd vector
+				if (w_fmtDate.compare(QString(w_cpyDate.c_str())) == 0)
+				{
+					m_vecOfCmd2Display.push_back(val);
+				}
+			}
+		}
+		else if( m_rngDate2Check->isChecked())
+		{
+			m_displaySelect = eDisplayMode::dateRange;
+
+			QDate w_minDate = m_dateMinSelected->date();
+			QString w_fmtMinDate = w_minDate.toString(QString("yyyyMMdd"));
+			QDate w_maxDate = m_dateMaxSelected->date();
+			QString w_fmtMaxDate = w_maxDate.toString(QString("yyyyMMdd"));
+
+			// now select only those that satisfied the selected date
+			for( const auto& val : m_vectorOfCmd)
+			{
+				std::string w_cpyDate = boost::replace_all_copy(val.m_datePromise, R"(/)", "");
+
+				// loop on the cmd vector
+				if(QString(w_cpyDate.c_str()) >= w_fmtMinDate && QString(w_cpyDate.c_str()) <= w_fmtMaxDate)
+				{
+					m_vecOfCmd2Display.push_back(val);
+				}
+			}
+		}
+    		
+		// debugging purpose
+		switch (m_displaySelect)
+		{
+		case bdApp::BoDucReportCreator::eDisplayMode::all:
+			// show all cmd in the report files
+	//		m_vectorOfCmd = loadCmdReportInVector(w_filesName);
+	//		remDuplicateAndSort(m_vectorOfCmd);
+	//		m_vecOfCmd2Display = m_vectorOfCmd;
+			fillTableWidget2Display();
+			break;
+		case bdApp::BoDucReportCreator::eDisplayMode::date:
+			fillTableWidget2Display();
+			break;
+		case bdApp::BoDucReportCreator::eDisplayMode::dateRange:
+			fillTableWidget2Display();
+			break;
+		default:
+			break;
+		}
+		//m_vecOfCmd2Display.clear();  ready for next selection
+	}
+
+	void BoDucReportCreator::allDateChecked()
+	{
+		if (m_allDateCheck->checkState() == Qt::Unchecked)
+		{
+			m_allDateCheck->setCheckState(Qt::Checked);
+		}
+		else
+		{
+			m_allDateCheck->setCheckState(Qt::Unchecked);
+		}
+	}
+
+	void bdApp::BoDucReportCreator::clearDispalyedCmd()
+	{
+		auto w_numberOfRows = m_tblWidget->rowCount();
+		for( auto i=0; i<m_vecOfCmd2Display.size();++i)
+		{
+			m_tblWidget->removeRow(i);
+			for (auto j=0; j<m_tblWidget->columnCount();++j)
+			{
+				QTableWidgetItem* w_toDel = m_tblWidget->item(i, j);
+				if (nullptr != w_toDel)
+				{
+					delete w_toDel;
+				}
+			}
+		}
+
+		// debugging purpose
+		auto w_remainingRows = m_tblWidget->rowCount();
+		m_tblWidget->setRowCount(w_numberOfRows);
+		w_remainingRows = m_tblWidget->rowCount();
+		// call m_tblWidget to retrieve number of rows
+		// then call removeRow for each one
+		m_vecOfCmd2Display.clear();
+	}
+
 } // End of namespace

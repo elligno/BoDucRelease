@@ -69,7 +69,7 @@ namespace bdAPI
 		virtual void readFiles( const std::list<std::string>& aFilesNameWithPath,
 			const std::string& aSplitBill = "Ordered on");
 
-		// Use the BoDuc writer for report formatting
+		// Use the BoDuc writer for report formatting (deprecated)
 		virtual void createReport( const std::string& aBonDeLivraison = "BonDeLivraison.txt");
 
 		// return the number of command that is being processed

@@ -13,6 +13,11 @@
 
 namespace bdAPI 
 {
+	BoDucParser::BoDucParser(BoDucBonLivraisonAlgorithm * aReader)
+  : m_parserAlgo(aReader)
+	{
+		m_bdStruct.reserve(50); // default 
+	}
 	void BoDucParser::extractData( const mapIntVecstr& aListOfCmd,
 		BoDucBonLivraisonAlgorithm* aBonLivraisonAlgo)
 	{
@@ -51,8 +56,12 @@ namespace bdAPI
 			{
 				aBonLivraisonAlgo->fillBoDucFields(w_cmd2Proceed, w_boducStruct);
 			}
+			// deprecated
 			aBonLivraisonAlgo->addBoDucField( w_boducStruct);
 			++w_begMap; // next in the list
+
+			// refactoring (new version)
+			//m_bdStruct.push_back(w_boducStruct);
 
 #if _DEBUG
 			std::cout << "\n";
@@ -64,6 +73,11 @@ namespace bdAPI
 			std::cout << "Silo number is: " << w_boducStruct.m_silo << "\n";
 #endif
 		}//while-loop
+	}
+
+	void BoDucParser::extractData(const mapIntVecstr & aListOfCmd)
+	{
+		// not implemented yet
 	}
 
 	bool BoDucParser::useTM( const std::vector<std::string>& aVecOfCmdLines)

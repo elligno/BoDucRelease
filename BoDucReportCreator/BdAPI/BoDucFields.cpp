@@ -15,6 +15,19 @@ bdAPI::BoDucFields::BoDucFields()
 	std::cout << "";
 }
 
+//TODO should declare a member 
+bdAPI::BoDucFields::BoDucFields( bdTpl && aTpl)
+{
+	// to be completed
+	m_noCmd       = std::get<0>(aTpl);
+	m_deliverTo   = std::get<1>(aTpl);
+	m_datePromise = std::get<2>(aTpl);
+	m_prodCode    = std::get<3>(aTpl);
+	m_produit     = std::get<4>(aTpl);
+	m_qty         = std::get<5>(aTpl);
+	m_silo        = std::get<6>(aTpl);
+}
+
 // ==================================
 // Address Parser implementation
 // ==================================

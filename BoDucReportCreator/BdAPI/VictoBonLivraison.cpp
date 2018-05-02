@@ -21,11 +21,18 @@
 bdAPI::VictoBonLivraison::VictoBonLivraison()
 : m_fieldKey({ "No Command","Shipped to","Date promise","produit et description" })
 {
+	m_vecOfStruct.reserve(1000); // hard code for now
 }
 
 bdAPI::VictoBonLivraison::~VictoBonLivraison()
 {
 	std::cout << "Nothing to do\n";
+	// maybe clear vector, but i think it's done automatically 
+	// at the end of lifecycle of this object
+	if (!m_vecOfStruct.empty())
+	{
+		m_vecOfStruct.clear(); // size=0
+	}
 }
 
 // Receive the BoDuc command in a vector of string which represent

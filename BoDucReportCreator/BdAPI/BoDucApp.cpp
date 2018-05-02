@@ -25,7 +25,6 @@ namespace { // check if it is a valid character
 	{
 		return !(isalpha(c) || c == '_');
 	}
-
 }
 
 namespace bdAPI 
@@ -79,6 +78,7 @@ namespace bdAPI
 
 		auto w_filesInUse = getNbSelectedFiles();
 		
+		//TODO: need to change the signature
 		if (w_filesInUse==1)
 		{
 			// retrieve values 
@@ -98,10 +98,14 @@ namespace bdAPI
 		//		w_bonLivraison->getBoDucStruct(m_reportData);
 			}
 		}
+
 		// TODO: Design Note
 		// shall be call outside the if-else to avoid to copy over and over
 		// only to do it once, algorithm instance takes care of pilling up
 		w_bonLivraison->getBoDucStruct(m_reportData);
+
+		// new version (copy vector)
+		//m_reportData = w_boducParseAlgo.getBdFields();
 
 		// application stay open and you read files, BoDucApp never destroy
 		// then all member never get destroy or empty. Need to force empty.
@@ -275,6 +279,7 @@ namespace bdAPI
 		// now supporting multiple file selection from user
 	}
 
+	// deprecated
 	void BoDucApp::createReport( const std::string & aBonDeLivraison)
 	{
 		// do we need to set the path for saving result
