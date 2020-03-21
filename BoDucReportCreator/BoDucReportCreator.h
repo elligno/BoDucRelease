@@ -3,8 +3,9 @@
 // Qt includes
 #include <QtWidgets/QWidget>
 #include <QtWidgets/QDialog>
-#include <QMultiMap>
+//#include <QMultiMap>
 #include "ui_BoDucReportCreator.h"
+
 // App. includes
 #include "BdAPI/BoDucFields.h"
 #include "BdAPI/BoDucApp.h"
@@ -47,7 +48,8 @@ namespace bdApp
 	public:
 		BoDucReportCreator( QWidget *parent = Q_NULLPTR);
 		BoDucReportCreator( const BoDucReportCreator& aOther)=delete;
-		BoDucReportCreator& operator= ( const BoDucReportCreator& aOther) = delete;
+
+		BoDucReportCreator& operator= (const BoDucReportCreator& aOther) = delete;
 
 		public slots:
 		//void highlightChecked(QListWidgetItem* item);
@@ -55,7 +57,8 @@ namespace bdApp
 		void saveCmdToFile();
 		void loadCmdFromFile();
 		void OpenCsvFile();
-		void savetest(); // do what??
+		void savetest(); // do what?? deprecated
+		void saveCmdSelection();
 		void open();     // open command file for reading
 		void setMode();
 		void showCmd();
@@ -65,13 +68,17 @@ namespace bdApp
 	 //	void selectedItem();
 	//	void clickedItem();
 		void currentUniteON();
-		void createBonReport();
-		void testItemClick(QTableWidgetItem* aItem);
+		void createBonLivraison();
+		void testItemClick(QTableWidgetItem* aItem); // deprecated
+		void insertHour(int rowNo, int columnNo); // ???
 	private:
 		// struct to hold data (bon livraison report )
 		using tplbonlivraison = std::tuple<QString/*address*/, QString/*product*/, double/*qty*/, short/*silo*/>;
-		using tplunitAndLoad = std::tuple<unsigned/*unit no*/, double/*normal load*/, double/*degel load*/>;
-		using mapunitfileds = std::map<unsigned/*unit no*/, std::vector<bdAPI::BoDucFields>/*unit data*/>;
+		using boducBon2Write  = std::tuple<unsigned /*unit*/, QString/*hour*/, QString/*address*/, QString/*product*/, double/*qty*/, short/*silo*/>;
+		using tplunitAndLoad  = std::tuple<unsigned/*unit no*/, double/*normal load*/, double/*degel load*/>;
+		using mapunitfileds   = std::map<unsigned/*unit no*/, std::vector<bdAPI::BoDucFields>/*unit data*/>;
+		using mapunitfields   = std::map<unsigned/*unit no*/, std::vector<std::pair<QString,bdAPI::BoDucFields>>/*unit data*/>;
+		using mapofunitbon    = std::map<unsigned/*unit no*/, boducBon2Write>;
 
 	//	QListWidget* m_listWidget;
 		QTableWidget* m_tblWidget;
@@ -95,7 +102,7 @@ namespace bdApp
 		QPushButton* m_saveSelectBtn;
 		QPushButton* m_bonCreateReport;
 	  // progress bar 
-		static const int m_nbUnit=10;
+		static const auto m_nbUnit=10;
 		QProgressBar* m_progressBar[m_nbUnit];
 		QVBoxLayout* m_columnLayout[5];
 		QStringList* m_buttonTitle;
@@ -110,9 +117,9 @@ namespace bdApp
 		void createOtherWidgets();
 		void createLayout();
 		void setUniteBox();
+		void initMapUserSelection();
 		QGroupBox* createAnalyzerBox();
 		QGroupBox* createCreatorBox();
-
 		// progress bar handler (move semantic)
 		void addProgressBar(QBoxLayout* w_vProgressBar, const std::string& aUniteNb);
 		void setHProgressBar();
@@ -121,6 +128,7 @@ namespace bdApp
 		void saveDataIntoTable();
 		void setTableWidgetBox();
 		void updateProgress();
+		bool updateUnitProgress(const float aVal2Update);
 		void initProgressBar();
 		// deprecated, removed in the next refactoring 
 		void createDataReport();
@@ -134,7 +142,7 @@ namespace bdApp
 		QPushButton* m_saveButton;     // when user push this button, report is saved
 
 		QPushButton* m_exit;
-		QTextEdit* m_console;
+	//	QTextEdit* m_console; deprecated
 		// ...
 		int m_pbarmin = 0;
 		int m_pbarmax = 0;
@@ -159,11 +167,14 @@ namespace bdApp
 		// key is the unit no and all values for report creation
 		QMultiMap<QString, tplbonlivraison> m_unitBonLivraisonData;
 
-		// list of unit that are available
-		QStringList m_listUniteAvailable = { QString("Unit 30"), QString("Unit 33"), 
+		// list of unit that are available list initializer (supported by vs2015 or later)
+		//TODO: shall be done in a config file (user can modify without building the app) 
+		QStringList m_listUniteAvailable = 
+		{ QString("Unit 30"), QString("Unit 33"),
 			QString("Unit 103"), QString("Unit 110"), QString("Unit 111"),
 			QString("Unit 112"), QString("Unit 114"), QString("Unit 115"),
-			QString("Unit 116"), QString("Unit 117") };
+			QString("Unit 116"), QString("Unit 117") 
+		};
 	
 		// hold a vector of cmd for each unit (create bon livraison)
 		mapunitfileds m_cmdUnitSaved;
