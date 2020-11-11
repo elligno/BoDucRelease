@@ -1663,8 +1663,17 @@ namespace bdApp
 	void BoDucReportCreator::convertPdf2Txt()
 	{
 		// convert to txt file
-		const QString pythonScript = R"(F:\EllignoContract\BoDuc\pdfminerTxt\pdfminer-20140328\build/scripts-2.7\pdf2txt.py)";
-		const QString w_pdfilesPath = R"(F:\EllignoContract\BoDuc\QtTestGui\BoDucReportCreator\BoDucReportCreator\Data)"; // pdf files folder
+		const QString pythonScript = R"(F:\EllignoContract\BoDuc\pdfminerTxt\pdfminer-20140328\build\scripts-2.7\pdf2txt.py)";
+		//const QString w_pdfilesPath = R"(F:\EllignoContract\BoDuc\QtTestGui\BoDucReportCreator\BoDucReportCreator\Data)";  pdf files folder
+    const QString w_pdfilesPath = R"(F:\EllignoContract\BoDuc\QtTestGui\BoDucReportCreator\BoDucReportCreator\Data\DataValidation)"; // debugging purpose
+
+//     QDir w_txtFilesFolder;
+//     QString w_pathNow = QDir::current().absolutePath();
+//     w_txtFilesFolder.setPath(w_pathNow);
+//     QString w_repDirName = w_txtFilesFolder.dirName();
+
+    // directory validation
+    //if( QDir::exists(w_pdfilesPath)) {}
 
 		QProcess w_process(this);
 		QProcessEnvironment env = QProcessEnvironment::systemEnvironment();

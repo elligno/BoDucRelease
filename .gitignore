@@ -249,7 +249,12 @@ ModelManifest.xml
 /BoDucReportCreator/Unit 1_BonLiveraison.txt
 /BoDucReportCreator/Unit 3_BonLiveraison.txt
 /BoDucReportCreator/Unit 1_BonLiveraison.txt
+/ReportFiles/CommandReport.txt
 *.txt
 *.pdf
+*.zip
+*.rar
 BoDucAPI.eapx
 BoDucAPI.ldb
+*.csv
+scripts-2.7/

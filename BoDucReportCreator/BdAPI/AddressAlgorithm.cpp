@@ -64,8 +64,14 @@ namespace bdAPI
 			// jani fix
 			if( boost::contains( aVec[2], "*** COVILAC***"))
 			{
-				return std::vector<std::string>({ aVec[0],aVec[3] });;
+				return std::vector<std::string>({ aVec[0],aVec[3] });
 			}
+      // Paul Cote fix (9154-7737 Québec inc(Paul Côté) E-2 (4052))
+      // for some reason, csv file first facture, address is messed up
+      if( boost::contains(aVec[0],"9154-7737"))
+      {
+        return std::vector<std::string>({ aVec[0],aVec[1],aVec[3] });
+      }
 
 			std::string w_tmpStr = aVec[1]; // second line 
 			// split last lines with token ","

@@ -1,5 +1,5 @@
 
-// C++ inc;udes 
+// C++ includes 
 #include <sstream>
 #include <iostream>
 #include <string>
@@ -82,7 +82,7 @@ void bdAPI::VictoBonLivraison::fillBoDucFields( const std::vector<std::string>& 
 			continue;
 		}
 
-		int linenb(0); // int() does it set to 0, i think so
+		//int linenb(0); // int() does it set to 0, i think so
 		short vecPos(0); //line number
 		auto begVec = aCmdVec.begin();
 
@@ -108,7 +108,8 @@ void bdAPI::VictoBonLivraison::fillBoDucFields( const std::vector<std::string>& 
 				// retrieve the address to be delivered to  
 				if( ::strcmp("Shipped to", w_field2Look.c_str()) == 0)
 				{
-					std::string w_addressValue = w_fieldValue; // initialize
+          std::string w_addressValue = w_fieldValue; // initialize
+					
 					//std::string w_completeAddress;              store part of the complete address
 					std::vector<string> w_addressPart;
 
@@ -119,6 +120,40 @@ void bdAPI::VictoBonLivraison::fillBoDucFields( const std::vector<std::string>& 
 						//w_completeAddress += w_addressValue + std::string(" ");
 						w_addressValue = aCmdVec[++vecPos];
 					} while (!contains(w_addressValue, "Contact"));
+
+          // Design Note:
+          //  willbe moved in other class in the next version 
+          // check for some symetry in our address
+//           AddressParser w_checkAddress(w_addressPart);
+//           if( w_checkAddress.hasSymmetry())
+//           {
+//             // do something (fix Duplicate)
+//           }
+
+					//  jean b testing some algo (symetric algorithm for sold T o and shipping To are the same)
+          //  for a 4 lines symetric
+          // check Symmetry 
+//           if( w_addressPart.size()==4) // 4-lines
+//           {
+//             // sometimes address Sold To and Shipped To are concatenated
+//             // both are under Shipped To (one after one). We test if it 
+//             // is the case by permuting lines (last/first)
+//             std::vector<std::string> w_vecPermuted; w_vecPermuted.reserve(4);
+//             w_vecPermuted.emplace_back(w_addressPart[0]);
+//             w_vecPermuted.emplace_back(w_addressPart[2]);
+//             w_vecPermuted.emplace_back(w_addressPart[1]);
+//             w_vecPermuted.emplace_back(w_addressPart[3]);
+// 
+//             // check duplicate (sometimes sold to and shipped to has the same address)
+//             // by making them unique
+//             w_vecPermuted.erase( std::unique(w_vecPermuted.begin(), w_vecPermuted.end()), w_vecPermuted.end());
+// 
+//             // if they are the same, we should have only line left 
+//             if (w_vecPermuted.size()==2)
+//             {
+//               AddressParser w_buildShipAddress;
+//             }
+//           }
 
 					// reader is a
 					w_boducReader->readShippedTo(w_addressPart, aBoDucField);

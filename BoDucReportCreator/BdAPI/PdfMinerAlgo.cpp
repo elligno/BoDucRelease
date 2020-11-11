@@ -33,7 +33,18 @@ namespace bdAPI
 		vector<string> w_tmpFix = { string("Shipped to"), string("Date promise"),
 			 string("Qty ordered"), string("produit et description") };
 
-		// initialize the iterator at the beginning
+    auto w_foundCmdNo = std::find_if(aCmdVec.cbegin(), aCmdVec.cend(),
+      []( const std::string& aStr)
+    {
+      return boost::starts_with(aStr, "CO");
+    });
+
+    if (w_foundCmdNo != aCmdVec.cend())
+    {
+      aBoDucField.m_noCmd = *w_foundCmdNo; //*std::prev(begVec);
+    }
+
+    // initialize the iterator at the beginning
 		// hold the iterator position ready for next search
 		auto iterPos = aCmdVec.begin();
 
@@ -50,14 +61,7 @@ namespace bdAPI
 				const std::string& str2look = *begVec; // get line as string
 				if( contains( str2look, w_field2Look.c_str())) // check for keyword
 				{
-					// we have the field value (set to Command No: format CO1234567)
-			//		std::string w_fieldValue = aCmdVec[--vecPos];
-					if( boost::istarts_with( *std::prev(begVec),"CO"))
-					{
-						aBoDucField.m_noCmd = *std::prev(begVec);
-					}
-
-					if( ::strcmp("Shipped to", w_field2Look.c_str()) == 0)
+          if( ::strcmp("Shipped to", w_field2Look.c_str()) == 0)
 					{
 					  // store part of the complete address
 						std::vector<string> w_addressPart;

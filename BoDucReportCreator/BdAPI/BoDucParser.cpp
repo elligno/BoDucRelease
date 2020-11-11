@@ -9,7 +9,6 @@
 #include "BoDucParser.h"
 #include "BoDucFields.h"
 #include "PdfMinerAlgo.h"
-//#include "BoDucBonLivraisonAlgorithm.h"
 
 namespace bdAPI 
 {
@@ -25,53 +24,38 @@ namespace bdAPI
 		while( w_begMap != aListOfCmd.cend()) // process each cmd parsed from csv file
 		{
 			vecofstr w_cmd2Proceed = w_begMap->second;
-			if( PdfMinerAlgo* w_castCheck = dynamic_cast<PdfMinerAlgo*>(aBonLivraisonAlgo))
-			{
-				auto begVec = w_cmd2Proceed.begin();
-				while( begVec != w_cmd2Proceed.cend())
-				{
-					if( boost::contains(*begVec, std::string("TM")) || boost::contains(*begVec, std::string("TON")))
-					{
-						//retTM = true;
-						break;
-					}
-					else
-					{
-						++begVec;
-					}
-				}
-			}
-			else
-			{
-				if( !useTM(w_cmd2Proceed))
-				{
-					++w_begMap; // next in the list
-					continue; //"TM" not used in this command
-				}
-			}
 
-			// filling the BoDuc struct	
-			BoDucFields w_boducStruct;
-			if( aBonLivraisonAlgo != nullptr)
-			{
-				aBonLivraisonAlgo->fillBoDucFields(w_cmd2Proceed, w_boducStruct);
-			}
-			// deprecated
-			aBonLivraisonAlgo->addBoDucField( w_boducStruct);
-			++w_begMap; // next in the list
+      // when converting from pdf to txt, it introduce empty string element
+      // delete all empty string element to be able to parse with our algorithm
+      if( std::any_of( w_cmd2Proceed.cbegin(), w_cmd2Proceed.cend(), [](const std::string& aStr) { return aStr.empty(); }))
+      {
+        w_cmd2Proceed.erase( std::remove_if(w_cmd2Proceed.begin(), w_cmd2Proceed.end(), // delete empty element
+          [] ( const std::string& s) // check if an empty string
+        {
+          return s.empty();
+        }), w_cmd2Proceed.cend());
+      }
 
-			// refactoring (new version)
-			//m_bdStruct.push_back(w_boducStruct);
+      if (!std::any_of(w_cmd2Proceed.cbegin(), w_cmd2Proceed.cend(),
+        [](const std::string& aStr)
+      {
+        // check for a valid
+        return boost::contains(aStr, std::string("TM")) || boost::contains(aStr, std::string("TON"));
+      }))
+      {
+        ++w_begMap; // next in the list
+        continue;   //"TM" or "TON" not used in this command (not valid)
+      }
 
-#if _DEBUG
-			std::cout << "\n";
-			std::cout << "BoDuc command No is: " << w_boducStruct.m_noCmd << "\n";
-			std::cout << "Command shipped to: " << w_boducStruct.m_deliverTo << "\n";
-			std::cout << "Deliver date is: " << w_boducStruct.m_datePromise << "\n";
-			std::cout << "Product ordered is: " << w_boducStruct.m_produit << "\n";
-			std::cout << "Quantity ordered is: " << w_boducStruct.m_qty << "\n";
-			std::cout << "Silo number is: " << w_boducStruct.m_silo << "\n";
-#endif
+      // filling the BoDuc struct	
+      BoDucFields w_boducStruct;
+      if (aBonLivraisonAlgo != nullptr)
+      {
+        aBonLivraisonAlgo->fillBoDucFields(w_cmd2Proceed, w_boducStruct);
+      }
+      // deprecated
+      aBonLivraisonAlgo->addBoDucField(w_boducStruct);
+      ++w_begMap; // next in the list
 		}//while-loop
 	}
 
