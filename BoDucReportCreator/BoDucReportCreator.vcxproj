@@ -45,7 +45,7 @@
       <OutputFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</OutputFile>
       <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Release|x64'">output</DynamicSource>
       <ExecutionDescription Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Moc'ing %(Identity)...</ExecutionDescription>
-      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.\GeneratedFiles;.;$(QTDIR)\include;.\GeneratedFiles\$(ConfigurationName)\.;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.\GeneratedFiles;.;$(QTDIR)\include;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets</IncludePath>
       <Define Condition="'$(Configuration)|$(Platform)'=='Release|x64'">UNICODE;WIN32;WIN64;QT_DLL;_SCL_SECURE_NO_WARNINGS;QT_NO_DEBUG;NDEBUG;QT_CORE_LIB;QT_GUI_LIB;QT_WIDGETS_LIB;%(PreprocessorDefinitions)</Define>
       <QTDIR Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(QTDIR)</QTDIR>
     </QtMoc>
@@ -106,7 +106,7 @@
     <QtMoc>
       <OutputFile>.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</OutputFile>
       <ExecutionDescription>Moc'ing %(Identity)...</ExecutionDescription>
-      <IncludePath>.\GeneratedFiles;.;$(QTDIR)\include;.\GeneratedFiles\$(ConfigurationName)\.;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets</IncludePath>
+      <IncludePath>.\GeneratedFiles;.;$(QTDIR)\include;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets</IncludePath>
       <Define>UNICODE;WIN32;WIN64;QT_DLL;_SCL_SECURE_NO_WARNINGS;QT_CORE_LIB;QT_GUI_LIB;QT_WIDGETS_LIB;%(PreprocessorDefinitions)</Define>
     </QtMoc>
     <QtUic>
@@ -119,10 +119,13 @@
     </QtRcc>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AnalyzerBoxWidget.cpp" />
     <ClCompile Include="BdAPI\AddressAlgorithm.cpp" />
     <ClCompile Include="BdAPI\AddressBuilder.cpp" />
     <ClCompile Include="BdAPI\AddressParser.cpp" />
     <ClCompile Include="BdAPI\BoDucApp.cpp" />
+    <ClCompile Include="BdAPI\BoDucBaseReport.cpp" />
+    <ClCompile Include="BdAPI\BoDucCmdFileReader.cpp" />
     <ClCompile Include="BdAPI\BoDucFields.cpp" />
     <ClCompile Include="BdAPI\BoDucParser.cpp" />
     <ClCompile Include="BdAPI\BoDucReaderfix.cpp" />
@@ -132,35 +135,25 @@
     <ClCompile Include="BdAPI\VictoBonLivraison.cpp" />
     <ClCompile Include="BdAPI\VictoReader.cpp" />
     <ClCompile Include="BoDucReportCreator.cpp" />
-    <ClCompile Include="GeneratedFiles\Debug\moc_BoDucReportCreator.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="GeneratedFiles\Release\moc_BoDucReportCreator.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="main.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="BoDucReportCreator.h">
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUNICODE -DWIN32 -D_SCL_SECURE_NO_WARNINGS -DWIN64 -DQT_DLL -DQT_NO_DEBUG -DNDEBUG -DQT_CORE_LIB -DQT_GUI_LIB -DQT_WIDGETS_LIB  "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtWidgets"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUNICODE -DWIN32 -D_SCL_SECURE_NO_WARNINGS -DWIN64 -DQT_DLL -DQT_NO_DEBUG -DNDEBUG -DQT_CORE_LIB -DQT_GUI_LIB -DQT_WIDGETS_LIB  "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtWidgets"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Moc%27ing BoDucReportCreator.h...</Message>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Moc%27ing BoDucReportCreator.h...</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
-    </CustomBuild>
+    <ClCompile Include="ProgressUnitBoxWidget.cpp" />
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="BoDucReportCreator.ui" />
   </ItemGroup>
   <ItemGroup>
+    <QtMoc Include="ProgressUnitBoxWidget.h" />
+    <QtMoc Include="BoDucReportCreator.h" />
+    <QtMoc Include="AnalyzerBoxWidget.h" />
     <ClInclude Include="BdAPI\AddressAlgorithm.h" />
     <ClInclude Include="BdAPI\AddressBuilder.h" />
     <ClInclude Include="BdAPI\AddressParser.h" />
     <ClInclude Include="BdAPI\BoDucApp.h" />
+    <ClInclude Include="BdAPI\BoDucBaseReport.h" />
+    <ClInclude Include="BdAPI\BoDucBonLivraison.h" />
     <ClInclude Include="BdAPI\BoDucBonLivraisonAlgorithm.h" />
+    <ClInclude Include="BdAPI\BoDucCmdFileReader.h" />
+    <ClInclude Include="BdAPI\BoDucCmdText.h" />
     <ClInclude Include="BdAPI\BoDucCsvReader.h" />
     <ClInclude Include="BdAPI\BoDucFields.h" />
     <ClInclude Include="BdAPI\BoDucParser.h" />

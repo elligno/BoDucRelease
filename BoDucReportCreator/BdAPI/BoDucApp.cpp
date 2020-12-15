@@ -125,7 +125,7 @@ namespace bdAPI
 		using vecofstr = std::vector<std::string>;
 		
 		// lambda (anonymous) function declaration
-		auto checkTransportName = [](const std::string& aStr2Look) -> bool
+		auto checkTransportName = [] (const std::string& aStr2Look) -> bool
 		{
 			// Transporteur name (BoDuc)
 			return (contains(aStr2Look, "NIR R-117971-3 TRSP CPB INC")

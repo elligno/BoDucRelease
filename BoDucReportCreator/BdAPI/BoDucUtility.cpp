@@ -1,13 +1,18 @@
 // C++ includes
 #include <Windows.h>
 #include <iostream>
+#include <fstream>
 #include <codecvt>
 #include <vector>
 // boost includes
+#include <boost/lambda/if.hpp>    //??not sure if need it
 #include <boost/lexical_cast.hpp>
+#include <boost/lambda/lambda.hpp>
 #include <boost/algorithm/string.hpp>       // string algorithm
 #include <boost/algorithm/string/split.hpp> // splitting algo
 #include  <boost/algorithm/string/predicate.hpp>
+// Qt includes
+#include <QVector>
 // App includes
 #include "BoDucUtility.h"
 #include "AddressAlgorithm.h"
@@ -15,6 +20,18 @@
 #include "AddressBuilder.h"
 
 using namespace bdAPI;
+
+namespace {
+  // Just some helpers to read file with data separated tab 
+  void split(const std::string &s, char delim, std::vector<std::string> &elems) {
+    std::stringstream ss;
+    ss.str(s); // split to white space (see Bjarne Stroutstrup book "C++ Language And Practice")
+    std::string item;
+    while (std::getline(ss, item, delim)) {
+      elems.push_back(item);
+    }
+  }
+}// End of namespace anonymous
 
 std::vector<std::string> BoDucUtility::TrimRightCommaAndErase( const std::string & aStr2Trim)
 {
@@ -45,7 +62,7 @@ bool bdAPI::BoDucUtility::isPostalCode(const std::string & aAddress)
 		// stl algorithm. If both count == 3 we have a postal code
 
 		std::locale loc;
-		auto w_nbAlpha = std::count_if(aAddress.cbegin(), aAddress.cend(),
+		auto w_nbAlpha = std::count_if( aAddress.cbegin(), aAddress.cend(),
 			[loc](unsigned char c) { return std::isalpha(c, loc); }
 		);
 
@@ -214,7 +231,10 @@ std::string BoDucUtility::AddressFixAlgorithm(const std::vector<std::string> &w_
 	return w_complAddrs;
 }
 
-std::wstring BoDucUtility::ConvertFromUtf8ToUtf16(const std::string& str)
+// By using QTextStream i am not sure if we need it (see documentation of QTextSTream)
+// QString mange the utf-8 string codec character (we have to test)
+// This utility
+std::wstring BoDucUtility::ConvertFromUtf8ToUtf16( const std::string& str)
 {
 	std::wstring convertedString;
 	int requiredSize = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, 0, 0);
@@ -227,9 +247,186 @@ std::wstring BoDucUtility::ConvertFromUtf8ToUtf16(const std::string& str)
 
 	return convertedString;
 }
+
 std::wstring BoDucUtility::FromUtf8ToUtf16(const std::string & str)
 {
 	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> cwuf8;
 	std::wstring w_strConverted = cwuf8.from_bytes(str);
 	return w_strConverted;
+}
+
+std::vector<BoDucFields> BoDucUtility::loadCmdReportInVector( const QString & aFilepath)
+{
+  std::ifstream infile(aFilepath.toStdString().c_str());
+  if( !infile)
+  {
+    std::cerr << "Could not open file for reading\n";
+  }
+
+  std::vector<bdAPI::BoDucFields> w_vecBD;
+  w_vecBD.reserve(1000); // debugging purpose
+  std::string line;
+  std::vector<std::string> row_values;
+  auto lineCounter = 0;
+  while( std::getline(infile, line))
+  {
+    // header column name want to skip that
+    if (lineCounter == 0) { lineCounter += 1; continue; }
+    if (line.empty()) { continue; } // don't treat empty line
+                                    // ...
+    if (!row_values.empty())
+    {
+      row_values.clear();
+    }
+    row_values.reserve(7); // number of fields
+
+    split(line, '\t', row_values);
+
+    // use the mode semantic of the vector
+    long w_prodCode = atoi(row_values[3].c_str());
+    float w_qty = atof(row_values[5].c_str());
+
+    w_vecBD.push_back(bdAPI::BoDucFields(std::make_tuple(row_values[0], row_values[1], row_values[2],
+      w_prodCode, row_values[4], w_qty, row_values[6])));
+  }
+  if (w_vecBD.capacity() > w_vecBD.size())
+  {
+    w_vecBD.shrink_to_fit();
+  }
+  return w_vecBD;
+}
+
+QList<QVector<QVariant>> BoDucUtility::fromBDFieldToQVariant( const std::vector<bdAPI::BoDucFields>& abdF)
+{
+  QVector<QVariant> w_vec2Fill;
+  QList<QVector<QVariant>> w_listOfVariant;
+  w_vec2Fill.reserve(7); // number of fields
+
+  auto lineCounter = 0;
+  if (!w_vec2Fill.empty())
+  {
+    w_vec2Fill.clear();
+  }
+  auto i = 0;
+  // always const and ref to avoid copy
+  for (const auto& v : abdF)
+  {
+    w_vec2Fill.push_back(QVariant(v.m_noCmd.c_str())); //0
+    w_vec2Fill.push_back(QVariant(v.m_deliverTo.c_str())); //1
+    w_vec2Fill.push_back(QVariant(v.m_datePromise.c_str())); //2
+    w_vec2Fill.push_back(QVariant(v.m_prodCode));
+    w_vec2Fill.push_back(QVariant(v.m_produit.c_str()));//4
+    w_vec2Fill.push_back(QVariant(v.m_qty));
+    w_vec2Fill.push_back(QVariant(v.m_silo.c_str())); //6
+
+#if 0
+    if (i == 3) // product code
+    {
+      //				int w_int = atoi(v.m_prodCode.c_str());
+      w_vec2Fill.push_back(QVariant(v.m_prodCode));
+    }
+    else if (i == 5) // qty
+    {
+      // double value
+      //double w_dbl = atof(v.c_str());
+      w_vec2Fill.push_back(QVariant(v.m_qty));
+    }
+    // 				else if (i == 6) //silo number
+    // 				{
+    // 					//int w_int = atoi(v.c_str());
+    // 					w_vec2Fill.push_back(QVariant(v.m_silo.c_str()));
+    // 				}
+    else
+    {
+      switch (i)
+      {
+      case 0:
+        w_vec2Fill.push_back(QVariant(v.m_noCmd.c_str())); //0
+        break;
+      case 1:
+        w_vec2Fill.push_back(QVariant(v.m_deliverTo.c_str())); //1
+        break;
+      case 2:
+        w_vec2Fill.push_back(QVariant(v.m_datePromise.c_str())); //2
+        break;
+      case 4:
+        w_vec2Fill.push_back(QVariant(v.m_produit.c_str()));//4
+        break;
+      case 6:
+        w_vec2Fill.push_back(QVariant(v.m_silo.c_str())); //6
+        break;
+      default:
+        break;
+      }
+      //w_vec2Fill.push_back(QVariant(v.m_noCmd.c_str())); //0
+      //w_vec2Fill.push_back(QVariant(v.m_deliverTo.c_str())); //1
+      //w_vec2Fill.push_back(QVariant(v.m_datePromise.c_str())); //2
+      //w_vec2Fill.push_back(QVariant(v.m_produit.c_str()));//4
+      //w_vec2Fill.push_back(QVariant(v.m_silo.c_str())); //6
+    }
+    ++i;
+#endif
+    w_listOfVariant.push_back(w_vec2Fill);
+    w_vec2Fill.clear();
+  }//for-loop
+
+  return w_listOfVariant;
+}
+
+// may return move semantic
+std::vector<BoDucFields> BoDucUtility::remDuplicateAndSort( const std::vector<BoDucFields>& aVecTotrim)
+{
+  // vector to be sorted
+  std::vector<BoDucFields> w_vecSorted( aVecTotrim.cbegin(), aVecTotrim.cend());
+
+  // need to check if we have duplicate (compare command number)
+  // first sort by the command No, once sorted duplicate element 
+  // will be adjacent to each other 
+  std::sort( w_vecSorted.begin(), w_vecSorted.end(),
+    []( BoDucFields& aField1, BoDucFields& aField2) -> bool
+  {
+    return std::greater<std::string>().operator()(aField1.m_noCmd, aField2.m_noCmd);
+  });
+
+  // remove all duplicate (since all element are sorted), we can make unique
+  // by removing adjacent element ...
+  w_vecSorted.erase( std::unique(w_vecSorted.begin(), w_vecSorted.end()), w_vecSorted.cend());
+
+  // trimming data before displaying in the GUI
+  std::for_each(w_vecSorted.begin(), w_vecSorted.end(),
+    []( BoDucFields& aBdField)
+  {
+    // Sorting dates represented as a string of the form YYYYMMDD 
+    // or an integer whose decimal representation is YYYYMMDD is trivial. 
+    // Just use std::sort and you will get the correct sort order.
+    // First remove the back slash
+    boost::algorithm::replace_all(aBdField.m_datePromise, R"(/)", "");
+  });
+
+#if _DEBUG
+  std::cout << "Back slash removed\n";
+  for( const auto& val : aVecTotrim)
+  {
+    std::cout << val;
+  }
+#endif
+  // ready to sort by date since we have only unique command
+  std::cout << "We are ready to sort our vector\n";
+  std::sort( w_vecSorted.begin(), w_vecSorted.end());           // ascending order less recent to more recent
+                                                               // need to reverse the order of the vector (descending order)
+  std::reverse( std::begin(w_vecSorted), std::end(w_vecSorted)); // reverse the order more recent to less 
+
+  // now we need to put back slash back
+  auto putItBack = [](bdAPI::BoDucFields& aStr) // lambda
+  {
+    aStr.m_datePromise = aStr.m_datePromise.substr(0, 4) + R"(/)" +
+    aStr.m_datePromise.substr(4, 2) + R"(/)" +
+    aStr.m_datePromise.substr(6, 2);
+  };
+  std::for_each(w_vecSorted.begin(), w_vecSorted.end(), putItBack);
+#if _DEBUG
+  std::for_each(w_vecSorted.cbegin(), w_vecSorted.cend(), std::cout << boost::lambda::_1 << "\n");
+#endif
+
+  return w_vecSorted;
 }

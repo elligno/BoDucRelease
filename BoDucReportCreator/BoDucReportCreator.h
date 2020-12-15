@@ -3,12 +3,14 @@
 // Qt includes
 #include <QtWidgets/QWidget>
 #include <QtWidgets/QDialog>
+#include <QDir>
 //#include <QMultiMap>
 #include "ui_BoDucReportCreator.h"
 
 // App. includes
 #include "BdAPI/BoDucFields.h"
-#include "BdAPI/BoDucApp.h"
+//#include "BdAPI/BoDucApp.h"
+#include "BdAPI/BoDucParser.h"
 
 // forward declaration
 class QWidget;
@@ -33,12 +35,15 @@ namespace bdApp
 	{
 		Q_OBJECT
 
+  public:
 		// set the capacity load according to time period of the year
 		enum class eCapacityMode
 		{
 			normal=0, // default mode (most of the year)
 			degel=1   // usually spring time
 		};
+
+    // deprecated (piece of crapt)
 		enum class eDisplayMode
 		{
 			all=0, // display all cmd from file
@@ -48,19 +53,24 @@ namespace bdApp
 	public:
 		BoDucReportCreator( QWidget *parent = Q_NULLPTR);
 		BoDucReportCreator( const BoDucReportCreator& aOther)=delete;
+    BoDucReportCreator& operator= (const BoDucReportCreator& aOther) = delete;
 
-		BoDucReportCreator& operator= (const BoDucReportCreator& aOther) = delete;
+  signals:
+    // notify the unit progress bar that we have updated unit load 
+    void updateUnitProressBar( const QString&, double);
 
-		public slots:
+  public slots:
 		//void highlightChecked(QListWidgetItem* item);
-		void parseCmd();
-		void saveCmdToFile();
-		void loadCmdFromFile();
-		void OpenCsvFile();
-		void savetest(); // do what?? deprecated
-		void saveCmdSelection();
-		void open();     // open command file for reading
-		void setMode();
+		void loadPdfFiles();
+		void loadCsvFiles();
+    void settingPath(); 
+    void updateVectorCommand( const std::vector<bdAPI::BoDucFields>&);  // update command in memory (vector)
+
+   // void savetest();  do what?? deprecated
+		void saveCmdSelection();  // deprecated
+    void saveUserSelection();  // connect to button "save selection"
+//		void open();      open command file for reading
+//		void setCapacityMode();
 		void showCmd();
 		void allDateChecked();
 		void clearDispalyedCmd();
@@ -69,10 +79,14 @@ namespace bdApp
 	//	void clickedItem();
 		void currentUniteON();
 		void createBonLivraison();
-		void testItemClick(QTableWidgetItem* aItem); // deprecated
+		void testItemClick( QTableWidgetItem* aItem); // deprecated
+    void userDblClickSelection( QTableWidgetItem* aItem);
 		void insertHour(int rowNo, int columnNo); // ???
 	private:
+    // Design Note
+    // all these tuple type should be wrapped in a class
 		// struct to hold data (bon livraison report )
+    // it certainly need a serious clean-up, hardly understaneable!! 
 		using tplbonlivraison = std::tuple<QString/*address*/, QString/*product*/, double/*qty*/, short/*silo*/>;
 		using boducBon2Write  = std::tuple<unsigned /*unit*/, QString/*hour*/, QString/*address*/, QString/*product*/, double/*qty*/, short/*silo*/>;
 		using tplunitAndLoad  = std::tuple<unsigned/*unit no*/, double/*normal load*/, double/*degel load*/>;
@@ -84,10 +98,7 @@ namespace bdApp
 		QTableWidget* m_tblWidget;
 		QStringList m_TableHeader;
 		QComboBox* m_listUnite;
-		QDialogButtonBox* m_dialogButtonBox;
-		QGroupBox* m_cmdBox;
 		QGroupBox* m_uniteBox;
-		QPushButton* m_closeButton;
 		QPushButton* m_clearButton;
 		QPushButton* m_showButton;
 		QDateEdit* m_dateSelect;
@@ -98,52 +109,49 @@ namespace bdApp
 		QCheckBox* m_allDateCheck;
 
 		// Bon de livraison box
-		QPushButton* m_loadButton;
 		QPushButton* m_saveSelectBtn;
 		QPushButton* m_bonCreateReport;
-	  // progress bar 
-		static const auto m_nbUnit=10;
+	  
+    // progress bar 
+		static constexpr auto m_nbUnit = 10; // maybe a const expr?
 		QProgressBar* m_progressBar[m_nbUnit];
-		QVBoxLayout* m_columnLayout[5];
-		QStringList* m_buttonTitle;
+		//QVBoxLayout* m_columnLayout[5];
+//		QStringList* m_buttonTitle;
 		QString m_currentUnite;
 		QList<QVector<QVariant>> m_read4test;
-		std::vector<bdAPI::BoDucFields> m_vectorOfCmd;      // all cmd from file
+	
+    std::vector<bdAPI::BoDucFields> m_vectorOfCmd;      // all cmd from file
 		std::vector<bdAPI::BoDucFields> m_vecOfCmd2Display; // selected cmd from user 
 
 		// some helper functions
-		void createTableWidget(); // deprecated
+		//void createTableWidget();  deprecated
 		void fillTableWidget2Display();
-		void createOtherWidgets();
 		void createLayout();
-		void setUniteBox();
+		
+    //void setUniteBox();
 		void initMapUserSelection();
 		QGroupBox* createAnalyzerBox();
-		QGroupBox* createCreatorBox();
-		// progress bar handler (move semantic)
-		void addProgressBar(QBoxLayout* w_vProgressBar, const std::string& aUniteNb);
-		void setHProgressBar();
-		QBoxLayout* setBottomButtons();
+		QGroupBox* createBonLivraisonBox();
+		QGroupBox* createProgressBarBox();
+    QGroupBox* setTableWidgetBox();
+
+    // progress bar handler (move semantic)
+		void addProgressBar( QBoxLayout* w_vProgressBar, const std::string& aUniteNb);
+    
+    QBoxLayout* setBottomButtons();
 		void setupViews();
-		void saveDataIntoTable();
-		void setTableWidgetBox();
+//		void saveDataIntoTable();
 		void updateProgress();
 		bool updateUnitProgress(const float aVal2Update);
 		void initProgressBar();
 		// deprecated, removed in the next refactoring 
-		void createDataReport();
-    // ...
+//		void createDataReport();
+    // deprecated
 		void createConnections();
-   
-//		QPushButton* m_saveSelectBtn;
-		QPushButton* m_analyzeLoadButton;
-		QPushButton* m_procButton;
-		QPushButton* m_openButton;
-		QPushButton* m_saveButton;     // when user push this button, report is saved
 
-		QPushButton* m_exit;
-	//	QTextEdit* m_console; deprecated
-		// ...
+//		QPushButton* m_exit;
+
+    // ...
 		int m_pbarmin = 0;
 		int m_pbarmax = 0;
 		int m_numButtons = 4;
@@ -151,13 +159,14 @@ namespace bdApp
 		int m_spacinVal = 15; 
 
 		int m_currowNoSelected;
-		QGroupBox* m_analyzerBox;
+		//QGroupBox* m_analyzerBox;
 		QGroupBox* m_creatorBox;
 		QString m_currUnityON;
 		QString m_fileName;        // name of the csv file 
-		QStringList m_filesName;   // list of all csv files name
-		QString m_bonLivraisonFile;
-		unsigned short m_fileLoaded;
+		QStringList m_filesName;   // list of all csv/pdf files name
+		QString m_bonLivraisonFile; // deprecated
+    QFile m_reportFile;
+    unsigned short m_fileLoaded;
 		eDisplayMode m_displaySelect;
 
 		// vector of all command fields that will be used 
@@ -175,7 +184,7 @@ namespace bdApp
 			QString("Unit 112"), QString("Unit 114"), QString("Unit 115"),
 			QString("Unit 116"), QString("Unit 117") 
 		};
-	
+
 		// hold a vector of cmd for each unit (create bon livraison)
 		mapunitfileds m_cmdUnitSaved;
 		int m_unitIndex=0;
@@ -184,15 +193,20 @@ namespace bdApp
 		std::list<tplunitAndLoad> m_listLoadValuesPerUnit;
 		void unitLoadConfig();
 		void setUnitCapacityLoad();
-		QPushButton* m_cptySelectBtn;
-		QPushButton * m_cancelButton;
-	private:
+		//QPushButton* m_cptySelectBtn;
+	
+private:
 		Ui::BoDucReportCreatorClass ui;
-		bdAPI::BoDucApp m_bdApp;
-		void convertPdf2Txt();
+		void convertPdf2Txt();  // derpecated
 		eCapacityMode m_capacityLoad = eCapacityMode::normal;
-		void remDuplicateAndSort( std::vector<bdAPI::BoDucFields>& aVecTotrim);
 
 		QBoxLayout* createHBoxLayoutRow1();
+ 
+    // mapping between a file and number of command 
+    //std::map<std::string, size_t> m_nbOfCmdInFile;
+    QString m_defaultDir = QDir::currentPath();
+    // location of the file database
+    QDir m_reportFolder;
+    void setReportFolder();
 	};
 } // End of namespace
