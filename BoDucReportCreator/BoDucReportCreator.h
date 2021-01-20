@@ -27,6 +27,8 @@ class QTableWidget;
 class QDialogButtonBox; // not used for now
 class QTableWidgetItem;
 
+class AnalyzerBoxWidget;
+
 #define nbUnit 10 // no don't do that!!!
 
 namespace bdApp 
@@ -54,6 +56,7 @@ namespace bdApp
 		BoDucReportCreator( QWidget *parent = Q_NULLPTR);
 		BoDucReportCreator( const BoDucReportCreator& aOther)=delete;
     BoDucReportCreator& operator= (const BoDucReportCreator& aOther) = delete;
+    ~BoDucReportCreator();
 
   signals:
     // notify the unit progress bar that we have updated unit load 
@@ -64,7 +67,7 @@ namespace bdApp
 		void loadPdfFiles();
 		void loadCsvFiles();
     void settingPath(); 
-    void updateVectorCommand( const std::vector<bdAPI::BoDucFields>&);  // update command in memory (vector)
+    void updateFileDataStore();  // update command in memory (vector)
 
    // void savetest();  do what?? deprecated
 		void saveCmdSelection();  // deprecated
@@ -72,7 +75,7 @@ namespace bdApp
 //		void open();      open command file for reading
 //		void setCapacityMode();
 		void showCmd();
-		void allDateChecked();
+		//void allDateChecked();
 		void clearDispalyedCmd();
 
 	 //	void selectedItem();
@@ -101,20 +104,20 @@ namespace bdApp
 		QGroupBox* m_uniteBox;
 		QPushButton* m_clearButton;
 		QPushButton* m_showButton;
-		QDateEdit* m_dateSelect;
+//		QDateEdit* m_dateSelect;
 		QDateEdit* m_dateMinSelected;
 		QDateEdit* m_dateMaxSelected;
-		QCheckBox* m_date2Check;
+//		QCheckBox* m_date2Check;
 		QCheckBox* m_rngDate2Check;
-		QCheckBox* m_allDateCheck;
+//		QCheckBox* m_allDateCheck;
 
 		// Bon de livraison box
 		QPushButton* m_saveSelectBtn;
 		QPushButton* m_bonCreateReport;
 	  
     // progress bar 
-		static constexpr auto m_nbUnit = 10; // maybe a const expr?
-		QProgressBar* m_progressBar[m_nbUnit];
+		static constexpr auto m_nbUnit = 10; 
+		//QProgressBar* m_progressBar[m_nbUnit];
 		//QVBoxLayout* m_columnLayout[5];
 //		QStringList* m_buttonTitle;
 		QString m_currentUnite;
@@ -141,9 +144,9 @@ namespace bdApp
     QBoxLayout* setBottomButtons();
 		void setupViews();
 //		void saveDataIntoTable();
-		void updateProgress();
+//		void updateProgress();
 		bool updateUnitProgress(const float aVal2Update);
-		void initProgressBar();
+//		void initProgressBar();
 		// deprecated, removed in the next refactoring 
 //		void createDataReport();
     // deprecated
@@ -185,22 +188,34 @@ namespace bdApp
 			QString("Unit 116"), QString("Unit 117") 
 		};
 
+    // Design Note
+    //  Should be put in file and loaded at app startup
+    using unitloadCapact = std::map<int/*unit no*/, std::pair<double/*Normal*/, double/*Degel*/>>;
+    unitloadCapact m_unitLoadCapacity{ { 30,{ 17.,14.}}, { 33,{ 31.,25.}},
+    { 103,{ 32.,25.}}, { 110,{ 32.,25.}}, { 111,{ 26.,21.}},{ 112, { 38.5,32.}},
+    { 114,{ 38.5,31.}},{ 115,{ 32.,25.}}, { 116,{ 14.,11.}},{ 117,{ 38.5,32.}} };
+
+    // store all progress bar in a map with corresponding unit no
+    using unitpbar = std::map<int/*unit no*/, QProgressBar*>;
+    //unitpbar w_unitPbar;
+    unitpbar m_unitPbar;
+
 		// hold a vector of cmd for each unit (create bon livraison)
 		mapunitfileds m_cmdUnitSaved;
-		int m_unitIndex=0;
+	//	int m_unitIndex=0;
 	//	std::tuple<unsigned/*unit no*/, double/*normal load*/, double/*degel load*/> m_unitAndCapacityLoad;
 
 		std::list<tplunitAndLoad> m_listLoadValuesPerUnit;
-		void unitLoadConfig();
+	//	void unitLoadConfig();
 		void setUnitCapacityLoad();
 		//QPushButton* m_cptySelectBtn;
 	
 private:
 		Ui::BoDucReportCreatorClass ui;
-		void convertPdf2Txt();  // derpecated
+		void convertPdf2Txt();  // derpecated (move to utility)
 		eCapacityMode m_capacityLoad = eCapacityMode::normal;
-
-		QBoxLayout* createHBoxLayoutRow1();
+    AnalyzerBoxWidget* m_analyzerBox; // group box that contains widget to load and parse command
+//		QBoxLayout* createHBoxLayoutRow1();
  
     // mapping between a file and number of command 
     //std::map<std::string, size_t> m_nbOfCmdInFile;

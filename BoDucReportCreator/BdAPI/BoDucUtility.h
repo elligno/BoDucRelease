@@ -41,7 +41,8 @@ namespace bdAPI
     static QList<QVector<QVariant>> fromBDFieldToQVariant( const std::vector<BoDucFields>& abdF);
     /** */
     static std::vector<bdAPI::BoDucFields> remDuplicateAndSort( const std::vector<BoDucFields>& aVecTotrim);
-    /** */
+    /** */ 
+    // return a QStringList of files with extension .txt
     static void convertPdf2Txt( const QStringList& aListOfFiles);
 	};
 } // End of namespace

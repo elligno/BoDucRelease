@@ -45,11 +45,12 @@ namespace bdAPI
 		}
 
     // QString converter to handle utf-8 character
-    QString noCmd() const       { return QString(m_noCmd.data()); }
-    QString deliverTo() const   { return QString(m_deliverTo.data()); }
+    QString noCmd()       const { return QString(m_noCmd.data());       }
+    QString deliverTo()   const { return QString(m_deliverTo.data());   }
     QString datePromise() const { return QString(m_datePromise.data()); }
-    QString produit() const     { return QString(m_produit.data()); }
-    QString silo() const        { return QString(m_silo.data()); }
+    QString produit()     const { return QString(m_produit.data());     }
+    QString silo()        const { return QString(m_silo.data());        }
+    float   qty()         const { return m_qty; }
 
 		std::string m_noCmd;
 		std::string m_deliverTo;
@@ -59,5 +60,6 @@ namespace bdAPI
 		float m_qty; // better to set as a string
 		//not always an integer (can be 2&3, 4-A and a string such as "Un seul silo")
 		std::string m_silo;
+    bdTpl m_bdTpl;
 	};
 } // End of namespace

@@ -15,9 +15,16 @@
 
 namespace bdAPI 
 {
-  BoDucParser::BoDucParser()
-  : m_fileExt(eFileType::csv),
-    m_fieldParserAlgo(nullptr)
+//   BoDucParser::BoDucParser()
+//   : m_fileExt(eFileType::csv),
+//     m_fieldParserAlgo(nullptr)
+//   {
+//     m_bdStruct.reserve(50);
+//   }
+
+  BoDucParser::BoDucParser( const eFileType aFilext /*= eFileType::csv*/)
+ : m_fileExt(aFilext),
+   m_fieldParserAlgo(nullptr)
   {
     m_bdStruct.reserve(50);
   }
@@ -165,13 +172,34 @@ namespace bdAPI
 
   bool BoDucParser::hasAnyTM_TON( const std::vector<std::string>& aCmdText)
   {
+    if (getFileExt() == BoDucParser::eFileType::pdf)
+    {
+      // need to parse the whole file, format not the same as 
+      auto findUM = std::find_if(aCmdText.cbegin(), aCmdText.cend(), [](const std::string& aStr2Find)
+      {
+        return boost::contains(aStr2Find, std::string("U/M"));
+      });
+
+      if( findUM!= aCmdText.cend()) // didn't reach the end, found something
+      {
+        auto w_lookAt = *std::next(findUM, 1);
+        if( (::strcmp( w_lookAt.data(), "TM")) == 0 || (::strcmp(w_lookAt.data(), "TON")) == 0)
+        {
+          return true;
+        }
+        else
+        {
+          return false;
+        }
+      }
+    }
 //     auto w_begMap = aListOfCmd.cbegin();
 //     while (w_begMap != aListOfCmd.cend()) // process each cmd parsed from csv file
 //     {
 //       vecofstr w_cmd2Proceed = w_begMap->second;
 
     // this part shall be done outside, we pass a const object and trying to modify it
-    // blank space shal be remove before and pass the trimmed vector 
+    // blank space shall be remove before and pass the trimmed vector 
       // when converting from pdf to txt, it introduce empty string element
       // delete all empty string element to be able to parse with our algorithm
 //       if( std::any_of( aCmdText.cbegin(), aCmdText.cend(), [](const std::string& aStr) { return aStr.empty(); }))

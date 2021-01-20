@@ -34,8 +34,8 @@ namespace bdAPI
 		using mapIntVecstr = std::map<int, vecofstr>; // deprecated
 
 	public:
-    BoDucParser();
-    BoDucParser( const eFileType aFilext);
+    //BoDucParser(); not need it for now
+    BoDucParser( const eFileType aFilext = eFileType::csv);
 		// part of refactoring
 		BoDucParser( BoDucBonLivraisonAlgorithm* aReader);
 		// copy and assign ctor not allowed
@@ -77,14 +77,14 @@ namespace bdAPI
 		//shall be in the BdApp class
 		bool useTM( const std::vector<std::string>& aVecOfCmdLines);
 
-    eFileType m_fileExt; /**< */
+    eFileType m_fileExt; /**< file extension*/
 
 		// part of the refactoring
 		BoDucBonLivraisonAlgorithm* m_fieldParserAlgo;  // deprecated
 		std::vector<BoDucFields> m_bdStruct; // not sure about this one??
 
     // lambda (anonymous) function declaration
-    std::function<bool( const std::string &aStr2Look) > m_checkTransportName = [](const std::string& aStr2Look) -> bool
+    std::function<bool( const std::string &aStr2Look) > m_checkTransportName = []( const std::string& aStr2Look) -> bool
     {
       using namespace boost;
 

@@ -14,8 +14,10 @@
 // boost include
 #include <boost/operators.hpp>
 
-// forward declaration
+// // forward declaration
+namespace bdAPI {
 class BoDucCmdIterator;
+}
 
 namespace bdAPI 
 {
@@ -55,8 +57,8 @@ namespace bdAPI
 
     void push_line( std::string&& aLine2Mv)
     {
-      m_veCmdStr.push_back(aLine2Mv);
-      m_qListStrCmd.push_back( QString(aLine2Mv.data()));
+      m_veCmdStr.push_back( std::move(aLine2Mv));
+      m_qListStrCmd.push_back( std::move(QString(aLine2Mv.data())));
     }
 
     void push_line( const std::string& aLine)
@@ -72,14 +74,14 @@ namespace bdAPI
     }
 
     // 
-    void find_line_with_token(boost::find_token) { throw "Not implemented yet"; }
+    //void find_line_with_token(boost::find_token) { throw "Not implemented yet"; }
 
     // not sure about this one!!!
-    QStringListIterator getQListIterator()     { return QStringListIterator(m_qListStrCmd); }
-    cmdLineIterator getCmdLineIterator() const { return boost::make_iterator_range(m_veCmdStr); }
+    QStringListIterator getQListIterator() const { return QStringListIterator(m_qListStrCmd);     }
+    cmdLineIterator getCmdLineIterator()   const { return boost::make_iterator_range(m_veCmdStr); }
 
     // return a range based on line index (boost range)
-    std::vector<std::string> rangeOfLines( size_t begLine,size_t endLine)
+    std::vector<std::string> rangeOfLines( size_t begLine, size_t endLine)
     {
       // implement with the boost range library
       //boost::iterator_range<std::vector<std::string>::const_iterator> cmd_range(m_veCmdStr.cbegin() + begLine, m_veCmdStr.cbegin() + endLine);
@@ -99,7 +101,8 @@ namespace bdAPI
      According to Scott Myers be carefull when using such tricky stuff;*/
     operator std::vector<std::string>() const { return m_veCmdStr; }
 
-    // not sure about those?? be carefull!! "TON"
+    // not sure about those?? be carefull!! "TON" can be part of word like 'BROMPTON'
+    // when checking for that given token, special care must be taken
     bool hasTM_TON() const
     {
       using namespace boost::algorithm;
@@ -156,6 +159,7 @@ namespace bdAPI
       { return aStr.empty();
       });
     }
+
     void removeBlankLine() // pdfMiner conversion insert blank line
     {
       m_veCmdStr.erase( std::remove_if( m_veCmdStr.begin(), m_veCmdStr.end(), // delete empty element
@@ -164,9 +168,10 @@ namespace bdAPI
         return s.empty();
       }), m_veCmdStr.cend());
     }
+    
     void shrinkIt() 
     {
-      if( m_veCmdStr.capacity()>m_veCmdStr.size())
+      if( m_veCmdStr.capacity() > m_veCmdStr.size())
       {
         m_veCmdStr.shrink_to_fit();
       }
@@ -217,7 +222,7 @@ namespace bdAPI
     bool useTON( const std::vector<std::string>& aVecOfCmdLines) { return false; } // default value
   };
 
-  /** utility to traverse the BoDuc command in text representation*/
+  /** Utility to traverse the BoDuc command text representation*/
   class BoDucCmdIterator
   {
   public:
@@ -225,20 +230,22 @@ namespace bdAPI
     bool hasNext() const       { return m_index < m_bdCmdTxt.size(); }
     std::string& current()     { return m_bdCmdTxt[m_index++]; }
     std::string  top() const   { return m_bdCmdTxt.m_veCmdStr.front(); }
-    std::string& operator++ () { return ++m_index; return }
+    std::string& operator++ () { ++m_index; return m_bdCmdTxt[m_index]; }
+    // post-increment not need for now 
   private:
-    int m_index;
-    BoDucCmdText& m_bdCmdTxt;
+    int m_index;               /**< */
+    BoDucCmdText& m_bdCmdTxt;  /**< */
   };
 
-  // contains a list of command to file
-  // Usage
-  //  std::map<filename,BoDucFileListCmdTxt> key is the file name
-  //  or better an unordered_map<filename,BoDucFileListCmdTxt> more efficient
-  //  
+  /** contains a list of command to file.
+   * Usage
+   *  std::map<filename,BoDucFileListCmdTxt> key is the file name
+   *  or better an unordered_map<filename,BoDucFileListCmdTxt> more efficient
+  */  
   class BoDucFileListCmdTxt 
   {
   public:
+    // what about ctor??
     void add(  const BoDucCmdText& aCmdTxt);
     void add( BoDucCmdText&& aCmdTxt);
     void remove(); // based on command number

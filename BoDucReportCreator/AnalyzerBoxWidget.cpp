@@ -120,6 +120,13 @@ void AnalyzerBoxWidget::loadCsvFiles()
     ++w_begList;
   }
 
+  // loading new command, remove older one
+  if( !m_reportCmd.empty())
+  {
+    m_reportCmd.clear();
+  }
+  m_reportCmd.reserve(200); // reserve memory
+
   // loop on each files in the list (fill vector map for processing multiple files in one step)
   // each map contains all command readed from a file (reminder: a can contains 1 or more command)
   auto w_vecofCmd = bdAPI::BoDucCmdFileReader::readFiles(w_listFilesName, std::string("Signature"));
@@ -127,9 +134,6 @@ void AnalyzerBoxWidget::loadCsvFiles()
   // number of files selected by user
   //m_fileLoaded = w_vecofCmd.size();
   // 		m_bdApp.setNbSelectedFiles(m_fileLoaded);
-
-  // debugging purpose
-  std::vector<bdAPI::BoDucFields> w_reportCmd;
 
   // This represent command extracted from files selected by user.
   // Each file is a map of vector of string (text rep of a command)
@@ -172,12 +176,18 @@ void AnalyzerBoxWidget::loadCsvFiles()
       // use the std any algorithm (with a lambda as the predicate to find
       //if any of those are present in files) 
       auto bdField = w_fileParser.extractData(w_checkCmd);
-      w_reportCmd.push_back(bdField);
+      m_reportCmd.push_back(bdField);
       ++w_cmdFileBeg; // ready for next command 
     }//while-loop
   }//for-loop
 
-  emit commandReportUpdated( w_reportCmd);
+  if( m_reportCmd.size() < m_reportCmd.capacity())
+  {
+    m_reportCmd.shrink_to_fit();
+  }
+
+  // notify that new commands has been loaded 
+  emit commandLoaded();
 }
 
 void AnalyzerBoxWidget::settingPath()
