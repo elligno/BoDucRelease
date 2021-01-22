@@ -26,12 +26,12 @@ QGroupBox* AnalyzerBoxWidget::createAnalyzerBox()
   QPushButton* w_loadCsvButton = new QPushButton(QString("Load .csv files"));
   w_rowLayout->addWidget(w_loadCsvButton); // stretch =0 and Qt::Alignment=alignment
                                            // connect signal/slot message 
-  connect(w_loadCsvButton, SIGNAL(clicked()), this, SLOT(loadCsvFiles()));
+  connect( w_loadCsvButton, SIGNAL(clicked()), this, SLOT(loadCsvFiles()));
 
   QPushButton* w_loadPdfButton = new QPushButton(QString("Load .pdf files"));
   w_rowLayout->addWidget(w_loadPdfButton); // see comment above
                                            // connect signal/slot message
-  connect(w_loadPdfButton, SIGNAL(clicked()), this, SLOT(loadPdfFiles()));
+  connect( w_loadPdfButton, SIGNAL(clicked()), this, SLOT(loadPdfFiles()));
 
   // load type(normal/degel) 
   QPushButton* w_capacitySelectButton = new QPushButton("Normal Load");
@@ -64,11 +64,11 @@ QGroupBox* AnalyzerBoxWidget::createAnalyzerBox()
   // the exec to make it work and convert pdf to text)
   QPushButton* w_settingsButton = new QPushButton(QString("Settings"));
   w_rowLayout->addWidget(w_settingsButton);
-  connect(w_settingsButton, SIGNAL(clicked()), this, SLOT(settingPath()));
+  connect( w_settingsButton, SIGNAL(clicked()), this, SLOT(settingPath()));
 
-  // set layout of this box (does Group box taking ownership of the layout??)
+  // set layout of this box (does Group box taking ownership of the layout??, yes it is)
   QGroupBox* w_analyzerBox = new QGroupBox;
-  w_analyzerBox->setLayout(w_rowLayout);
+  w_analyzerBox->setLayout(w_rowLayout); // take the owner ship of the HBoxLayout
 
   return w_analyzerBox;
 }
@@ -110,15 +110,15 @@ void AnalyzerBoxWidget::loadCsvFiles()
   }
 
   // parse each commands file 
-  std::list<std::string> w_listFilesName;
-  QStringList::const_iterator w_begList = m_filesName.constBegin();
-  QStringList::const_iterator w_endList = m_filesName.constEnd();
-  while (w_begList != w_endList)
-  {
-    //  std::cout << "Loading the following files: " << w_begList->toStdString() << std::endl;
-    w_listFilesName.push_back(w_begList->toStdString());
-    ++w_begList;
-  }
+//   std::list<std::string> w_listFilesName;
+//   QStringList::const_iterator w_begList = m_filesName.constBegin();
+//   QStringList::const_iterator w_endList = m_filesName.constEnd();
+//   while (w_begList != w_endList)
+//   {
+//     //  std::cout << "Loading the following files: " << w_begList->toStdString() << std::endl;
+//     w_listFilesName.push_back(w_begList->toStdString());
+//     ++w_begList;
+//   }
 
   // loading new command, remove older one
   if( !m_reportCmd.empty())
@@ -129,7 +129,7 @@ void AnalyzerBoxWidget::loadCsvFiles()
 
   // loop on each files in the list (fill vector map for processing multiple files in one step)
   // each map contains all command readed from a file (reminder: a can contains 1 or more command)
-  auto w_vecofCmd = bdAPI::BoDucCmdFileReader::readFiles(w_listFilesName, std::string("Signature"));
+  auto w_vecofCmd = bdAPI::BoDucCmdFileReader::readFiles(m_filesName);
 
   // number of files selected by user
   //m_fileLoaded = w_vecofCmd.size();

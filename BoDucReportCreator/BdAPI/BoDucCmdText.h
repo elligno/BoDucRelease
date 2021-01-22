@@ -3,6 +3,7 @@
 // C++ includes
 #include <string>
 #include <vector>
+#include <utility> // std::move
 #include <forward_list>
 // boost includes
 //#include <boost/lexical_cast.hpp>
@@ -13,8 +14,10 @@
 #include <QStringList>
 // boost include
 #include <boost/operators.hpp>
+// API package include
+#include "VictoReader.h"
 
-// // forward declaration
+// forward declaration
 namespace bdAPI {
 class BoDucCmdIterator;
 }
@@ -38,21 +41,24 @@ namespace bdAPI
 
     using cmdLineIterator = boost::iterator_range<std::vector<std::string>::const_iterator>;
   public:
-    /** Command text format from source (tool that was used to convert into text).
-     *  Algorithm are based on source format to locate specific character string.
-     *  We need to know from which tool the conversion was done.
-     */
-    enum class eSrcType
-    {
-      pdf2csv = 0,       /**< Pdf tool from Acrobat reader*/
-      pdfminer2txt = 1,  /**< Pdf miner engine to data extracter*/
-      pdf2rcsv = 2       /**< R pdf tool library*/
-    };
-
-  public:
     // what about default, copy and assignment ctor (=default)
-    BoDucCmdText( eSrcType aSrctext = eSrcType::pdf2csv) { m_veCmdStr.reserve(50); m_qListStrCmd.reserve(50); }
-//     BoDucCmdText( const QFile& aFileName);
+    BoDucCmdText() 
+    { 
+      m_veCmdStr.reserve(50); 
+      m_qListStrCmd.reserve(50); 
+    }
+
+    // 
+    explicit BoDucCmdText( std::vector<std::string>& aVecstr) {
+      m_veCmdStr.reserve(50);
+      m_qListStrCmd.reserve(50);
+    }
+
+    BoDucCmdText(std::vector<std::string>&& aVecstr)  
+    {
+      m_veCmdStr = std::move(aVecstr);
+    }
+
     // default ctor will be ok
 
     void push_line( std::string&& aLine2Mv)
@@ -95,6 +101,19 @@ namespace bdAPI
       return m_veCmdStr.size();
     }
 
+    /** clear whole command */
+    void clearCommand()
+    {
+      if(!m_veCmdStr.empty())
+      {
+        m_veCmdStr.clear();
+      }
+      if( !m_qListStrCmd.isEmpty())
+      {
+        m_qListStrCmd.clear();
+      }
+    }
+
     /** Implicit conversion operator to be use with our algorithm
     * Our algorithm have been designed as taking std::vectorof string
     * but in our new architecture 
@@ -108,7 +127,7 @@ namespace bdAPI
       using namespace boost::algorithm;
 
       return !std::any_of( m_veCmdStr.cbegin(), m_veCmdStr.cend(),
-        [](const QString& aStr) // check for the "TM" or "TON"
+        [](const std::string& aStr) // check for the "TM" or "TON"
       {
         // check for a valid
         // "BROMPTON" contains "TON", we need some kind of mechanism
@@ -128,12 +147,13 @@ namespace bdAPI
         {
            return boost::contains( aStr2Check, w_transporteurName);
         };
-        if( std::any_of(m_veCmdStr.cbegin(), m_veCmdStr.cend(), testLambda))
+        if( std::any_of( m_veCmdStr.cbegin(), m_veCmdStr.cend(), testLambda))
         {
           return true;
         }
-        return false;
-      }
+      }//while-loop
+
+      return false;
     }
 
     // compatibility with Qt 
@@ -149,6 +169,8 @@ namespace bdAPI
 
       return m_qListStrCmd;
     }
+
+    std::vector<std::string> asStdVector() const { return m_veCmdStr; }
 
     bool isEmpty() const { return m_veCmdStr.empty(); }
     bool hasTokens( const std::initializer_list<std::string>& aListofTokens = { "Vivaco", "Notes" });
@@ -189,11 +211,17 @@ namespace bdAPI
       // Placeholder
       BoDucFields w_bdField1;
       BoDucFields w_bdField2;
-      
+
+      // NOTE compile error because in the for-loop we pass aCmd1 which is aBoDucCmdText
+      //      doesn't support interface STL such as begin
+      //      range for-loop use iterator behind the hood, begin() and end() are required
+      //      since BoDucCmdtext is not a range, we a compile time error such as begin() not found
+#if 0
+
       // equal if they the same Command tag CO123456
       for( const std::string& aLine : aCmd1)
       {
-        if( boost::contains(aLine,"Date"))
+        if( boost::contains(aLine,"Date")) // line token = "Date", line below contains COxxxxx command order
         {
           VictoReader w_prodCode;
           w_prodCode.readProdCode(aLine, w_bdField1);
@@ -201,13 +229,15 @@ namespace bdAPI
       }
       for ( const std::string& aLine : aCmd2)
       {
-        if (boost::contains(aLine, "Date"))
+        if (boost::contains(aLine, "Date")) // line token = "Date", line below contains COxxxxx command order
         {
           VictoReader w_prodCode;
           w_prodCode.readProdCode(aLine, w_bdField2);
         }
       }
       return (w_bdField1.m_prodCode == w_bdField2.m_prodCode);
+#endif
+      return false; // debugging purpose
     }
 
     // friend class to iterate through the text command
@@ -244,14 +274,34 @@ namespace bdAPI
   */  
   class BoDucFileListCmdTxt 
   {
+    /** Command text format from source (tool that was used to convert into text).
+    *  Algorithm are based on source format to locate specific character string.
+    *  We need to know from which tool the conversion was done.
+    */
+    enum class eSrcType
+    {
+      pdf2csv = 0,       /**< Pdf tool from Acrobat reader*/
+      pdfminer2txt = 1,  /**< Pdf miner engine to data extracter*/
+      pdf2rcsv = 2       /**< R pdf tool library*/
+    };
+
   public:
+    BoDucFileListCmdTxt( QFile& aFile /*eSrcType aSrctext = eSrcType::pdf2csv*/) : m_fileCmd(aFile), m_nbCmd(0) {}
+
     // what about ctor??
-    void add(  const BoDucCmdText& aCmdTxt);
-    void add( BoDucCmdText&& aCmdTxt);
-    void remove(); // based on command number
+    bool add( const BoDucCmdText& aCmdTxt) { ++m_nbCmd; return false; } // debugging purpose
+    // move semantic avoid copying large amount of data without creating temporary
+    void add( BoDucCmdText&& aCmdTxt)  
+    {
+      // temporary, not sure if a forward list is apporpriate fo rthis task!
+      m_listOfCmd2File.emplace_after(m_listOfCmd2File.cbegin(), std::move(aCmdTxt));
+    }
+    bool remove() { return false; } // based on command number
 
-    size_t nbOfCmd() const;
-
+    size_t nbOfCmd() const 
+    {
+      return m_nbCmd;
+    }
     const std::string& fileName() const
     {
       return m_fileName;
@@ -264,11 +314,18 @@ namespace bdAPI
     // support .csv and .txt
     bool isFileExtOk( const QStringList& aListOfiles) const;
 
+    QString getFileExt() const
+    {
+      QFileInfo w_checkFileInfo(m_fileCmd);
+      return w_checkFileInfo.completeSuffix();
+    }
+
     // Iterator on BoDucCmdText must be supported (boost range iterator)
   private:
-    QFile m_fileCmd;
+    QFile& m_fileCmd;
     std::string m_fileName;
     // maybe a forward list?? singly linked list
     std::forward_list<BoDucCmdText> m_listOfCmd2File;
+    size_t m_nbCmd;
   };
 } // End of namespace

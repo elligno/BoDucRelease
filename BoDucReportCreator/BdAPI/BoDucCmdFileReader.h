@@ -6,8 +6,9 @@
 #include <map>
 // Qt include
 #include <QStringList>
-// app include
+// app includes
 #include "BoDucFields.h"
+#include "BoDucCmdText.h"
 
 // forward declaration
 class QFile;
@@ -29,8 +30,8 @@ namespace bdAPI
 
   public:
     // parse and fill data structure 
-    static std::vector<mapIntVecstr> readFiles( const std::list<std::string>& aFilesNameWithPath,
-      const std::string& aSplitBill = "Ordered on");
+    static std::vector<mapIntVecstr> readFiles( const QStringList& aFilesNameWithPath ,
+      const std::string& aSplitBill = std::string("Signature"));
 
   private:
     static mapIntVecstr readFile( const std::string& aFileAnPath,
@@ -39,7 +40,11 @@ namespace bdAPI
     // just a test for future dev
     static mapIntVecstr readFile( QFile& aFileAndPath);
 
-    static std::string check4Accent( const std::string &aFileAnPath);
+    /** Read a list of files (BoDuc command files)*/
+    std::vector<BoDucCmdText> readFiles( const std::forward_list<std::unique_ptr<QFile>>& aListFiles, 
+      QString cmdSep = QString("Signature"));
+    BoDucFileListCmdTxt readFile( const std::unique_ptr<QFile>& aFile);
 
-  };
+    static std::string check4Accent( const std::string &aFileAnPath);
+   };
 } // End of namespace

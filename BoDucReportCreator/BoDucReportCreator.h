@@ -139,7 +139,7 @@ namespace bdApp
     QGroupBox* setTableWidgetBox();
 
     // progress bar handler (move semantic)
-		void addProgressBar( QBoxLayout* w_vProgressBar, const std::string& aUniteNb);
+//		void addProgressBar( QBoxLayout* w_vProgressBar, const std::string& aUniteNb);
     
     QBoxLayout* setBottomButtons();
 		void setupViews();
@@ -149,7 +149,8 @@ namespace bdApp
 //		void initProgressBar();
 		// deprecated, removed in the next refactoring 
 //		void createDataReport();
-    // deprecated
+
+// deprecated
 		void createConnections();
 
 //		QPushButton* m_exit;
@@ -187,15 +188,16 @@ namespace bdApp
 			QString("Unit 112"), QString("Unit 114"), QString("Unit 115"),
 			QString("Unit 116"), QString("Unit 117") 
 		};
-
-    // Design Note
-    //  Should be put in file and loaded at app startup
+    
+    /** unit no is the key and value is a pair for normal/degel capacity */
     using unitloadCapact = std::map<int/*unit no*/, std::pair<double/*Normal*/, double/*Degel*/>>;
+    
+    //  Should be put in file and loaded at app startup
     unitloadCapact m_unitLoadCapacity{ { 30,{ 17.,14.}}, { 33,{ 31.,25.}},
     { 103,{ 32.,25.}}, { 110,{ 32.,25.}}, { 111,{ 26.,21.}},{ 112, { 38.5,32.}},
     { 114,{ 38.5,31.}},{ 115,{ 32.,25.}}, { 116,{ 14.,11.}},{ 117,{ 38.5,32.}} };
 
-    // store all progress bar in a map with corresponding unit no
+    /** store all progress bar in a map with corresponding unit no*/
     using unitpbar = std::map<int/*unit no*/, QProgressBar*>;
     //unitpbar w_unitPbar;
     unitpbar m_unitPbar;
@@ -212,10 +214,8 @@ namespace bdApp
 	
 private:
 		Ui::BoDucReportCreatorClass ui;
-		void convertPdf2Txt();  // derpecated (move to utility)
 		eCapacityMode m_capacityLoad = eCapacityMode::normal;
     AnalyzerBoxWidget* m_analyzerBox; // group box that contains widget to load and parse command
-//		QBoxLayout* createHBoxLayoutRow1();
  
     // mapping between a file and number of command 
     //std::map<std::string, size_t> m_nbOfCmdInFile;
@@ -223,5 +223,6 @@ private:
     // location of the file database
     QDir m_reportFolder;
     void setReportFolder();
+    void setQProcessEnv( /*const QString& aPythonPath, const QString& aPdfPath*/);
 	};
 } // End of namespace

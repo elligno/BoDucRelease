@@ -6,6 +6,10 @@
 
 namespace bdAPI
 {
+  //
+  //  DEPRECATED will be removed in future version
+  //   doesn't make any sense
+  //
 	// Base class for all algorithm that parse BoDucStruct 
 	// that has been read from a csv file format. To be completed!!
 	//

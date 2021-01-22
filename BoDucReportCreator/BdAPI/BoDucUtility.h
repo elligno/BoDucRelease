@@ -6,6 +6,7 @@
 // Qt includes
 #include <QList>
 #include <QVariant>
+#include <QProcess>
 // BoDucAPI include
 #include "BoDucFields.h"
 
@@ -43,6 +44,7 @@ namespace bdAPI
     static std::vector<bdAPI::BoDucFields> remDuplicateAndSort( const std::vector<BoDucFields>& aVecTotrim);
     /** */ 
     // return a QStringList of files with extension .txt
-    static void convertPdf2Txt( const QStringList& aListOfFiles);
+    static QStringList convertPdf2Txt( const QStringList& aListOfFiles, const QString& aPythonPath,
+      /*const QString& aPdfPath,*/ QProcessEnvironment env, QObject* aQprocess);
 	};
 } // End of namespace

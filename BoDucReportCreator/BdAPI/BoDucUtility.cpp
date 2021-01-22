@@ -13,6 +13,7 @@
 #include  <boost/algorithm/string/predicate.hpp>
 // Qt includes
 #include <QVector>
+#include <QFileInfo>
 // App includes
 #include "BoDucUtility.h"
 #include "AddressAlgorithm.h"
@@ -22,6 +23,7 @@
 using namespace bdAPI;
 
 namespace {
+
   // Just some helpers to read file with data separated tab 
   void split(const std::string &s, char delim, std::vector<std::string> &elems) {
     std::stringstream ss;
@@ -96,6 +98,98 @@ bool bdAPI::BoDucUtility::isPostalCode(const std::string & aAddress)
 			}
 		}
 		return false;
+}
+
+QStringList BoDucUtility::convertPdf2Txt( const QStringList& aListOfFiles, const QString& aPythonPath, /*const QString& aPdfPath,*/
+                                          QProcessEnvironment env, QObject* aQprocess)
+{
+  // convert to txt file
+//   const QString pythonScript = R"(F:\EllignoContract\BoDuc\pdfminerTxt\pdfminer-20140328\build\scripts-2.7\pdf2txt.py)";
+//   const QString w_pdfilesPath = R"(F:\EllignoContract\BoDuc\QtTestGui\BoDucReportCreator\BoDucReportCreator\Data)";  //pdf files folder
+//                                                                                                                      
+  //const QString w_pdfilesPath = R"(F:\EllignoContract\BoDuc\QtTestGui\BoDucReportCreator\BoDucReportCreator\Data\DataValidation)";  debugging purpose
+  //     QDir w_txtFilesFolder;
+  //     QString w_pathNow = QDir::current().absolutePath();
+  //     w_txtFilesFolder.setPath(w_pathNow);
+  //     QString w_repDirName = w_txtFilesFolder.dirName();
+  // directory validation
+  //if( QDir::exists(w_pdfilesPath)) {}
+
+  QFileInfo w_wkrDir(aListOfFiles.front());
+  QString w_absPdfPath = w_wkrDir.absolutePath();
+//   QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+//   env.insert("PYTHONPATH", "C:\\Python27\\Lib");
+//   env.insert("PYTHONHOME", "C:\\Python27");
+   QProcess w_process(aQprocess);
+   w_process.setProcessEnvironment(env);
+   // Sets the working directory to dir. QProcess will start the process in this directory.
+   // The default behavior is to start the process in the working directory of the calling process.
+   //w_process.setWorkingDirectory(aPdfPath);  otherwise set path working dir of app
+   w_process.setWorkingDirectory(w_absPdfPath);
+  
+   QStringList w_listofTxtFiles;
+  // number of files selected by user
+  QStringListIterator filesListIterator(aListOfFiles);
+  while (filesListIterator.hasNext())
+  {
+    // String list contains the whole path
+    QFileInfo w_fileInfo(filesListIterator.next());
+    QString w_fname = w_fileInfo.fileName();
+    QString w_bname = w_fileInfo.baseName();
+    QString w_absPath = w_fileInfo.absoluteFilePath();
+    QString w_complPdfFile = w_fname; // filename with corresponding extension
+    QString w_complTxtFile = w_bname + ".txt";
+    // Add a space at beginning of the file name 
+    QString w_txtPath = w_fileInfo.canonicalPath() + R"(/ )" + w_complTxtFile;
+  //  QString w_txtPath = aPdfPath + R"(/ )" + w_complTxtFile;
+    w_listofTxtFiles.push_back(w_txtPath);
+
+    QString w_ofile("-o ");
+    QStringList params;
+    //w_process.start("Python", params);
+    //			QStringList params;
+    //std::cout << filesListIterator.next().constData() << std::endl;
+    params << aPythonPath << w_ofile + w_complTxtFile << w_complPdfFile;
+
+    w_process.start("Python", params);
+    if (w_process.waitForFinished(-1))
+    {
+      QByteArray p_stdout = w_process.readAll();
+      QByteArray p_stderr = w_process.readAllStandardError();
+      if (!p_stderr.isEmpty())
+        std::cout << "Python error:" << p_stderr.data();
+
+      //		qDebug() << "Python result=" << p_stdout;
+      if (!p_stdout.isEmpty())
+      {
+        std::cout << "Python conversion:" << p_stdout.data();
+      }
+      p_stdout; // write to console
+    }
+    // kill process
+    w_process.close();
+  }
+  // swap content, we are interested by .txt files (parsing) 
+  //w_listofTxtFiles.swap(m_filesName);
+  return w_listofTxtFiles;
+  // 		QDir w_checkFile(w_defaultDir);
+  // 		w_checkFile.cd("Data");
+  // 		QStringList w_dirList = w_checkFile.entryList();
+  // 		auto w_szz = w_dirList.size();
+  // 		for( const auto& w_fileName : w_dirList)
+  // 		{
+  // 			std::string w_str = w_fileName.toStdString();
+  // 			if( std::isspace(static_cast<char>(w_str[0])))
+  // 			{
+  // 				std::string w_noSpace(std::next(w_str.cbegin()), w_str.cend());
+  // 				QString w_newName(w_noSpace.c_str());
+  // 				w_checkFile.rename(w_fileName,QString("sas.txt"));
+  // 			}
+  // 		}
+
+  // Design Note
+  //  we need to change the extension of pdf file to be able to use our algorithm
+  //  for each of the file name in the list, retrieve extension 
 }
 
 std::string BoDucUtility::AddressFixAlgorithm(const std::vector<std::string> &w_vecOfAddressPart)
@@ -258,8 +352,10 @@ std::wstring BoDucUtility::FromUtf8ToUtf16(const std::string & str)
 std::vector<BoDucFields> BoDucUtility::loadCmdReportInVector( const QString & aFilepath)
 {
   std::ifstream infile(aFilepath.toStdString().c_str());
-  if( !infile)
+  // check if it is open
+  if( !infile) 
   {
+    // Should use a log file
     std::cerr << "Could not open file for reading\n";
   }
 
@@ -278,21 +374,31 @@ std::vector<BoDucFields> BoDucUtility::loadCmdReportInVector( const QString & aF
     {
       row_values.clear();
     }
-    row_values.reserve(7); // number of fields
 
+    // BoDucField (number of fields)
+    row_values.reserve(7); 
+
+    // values separated by tab, not csv yet
     split(line, '\t', row_values);
 
     // use the mode semantic of the vector
-    long w_prodCode = atoi(row_values[3].c_str());
-    float w_qty = atof(row_values[5].c_str());
+    long w_prodCode = ::atoi(row_values[3].c_str());
+    float w_qty = ::atof(row_values[5].c_str());
 
-    w_vecBD.push_back(bdAPI::BoDucFields(std::make_tuple(row_values[0], row_values[1], row_values[2],
+    w_vecBD.push_back( bdAPI::BoDucFields( std::make_tuple(row_values[0], row_values[1], row_values[2],
       w_prodCode, row_values[4], w_qty, row_values[6])));
   }
-  if (w_vecBD.capacity() > w_vecBD.size())
+
+  if( w_vecBD.capacity() > w_vecBD.size())
   {
     w_vecBD.shrink_to_fit();
   }
+
+  if( infile.is_open())
+  {
+    infile.close();
+  }
+
   return w_vecBD;
 }
 
@@ -303,13 +409,14 @@ QList<QVector<QVariant>> BoDucUtility::fromBDFieldToQVariant( const std::vector<
   w_vec2Fill.reserve(7); // number of fields
 
   auto lineCounter = 0;
-  if (!w_vec2Fill.empty())
+  if( !w_vec2Fill.empty())
   {
     w_vec2Fill.clear();
   }
+
   auto i = 0;
   // always const and ref to avoid copy
-  for (const auto& v : abdF)
+  for( const auto& v : abdF)
   {
     w_vec2Fill.push_back(QVariant(v.m_noCmd.c_str())); //0
     w_vec2Fill.push_back(QVariant(v.m_deliverTo.c_str())); //1

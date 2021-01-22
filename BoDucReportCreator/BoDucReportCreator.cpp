@@ -47,6 +47,12 @@
 #include "BdAPI/BoDucBaseReport.h"
 
 namespace {
+
+  // Pdfminer tool (convert pdf files to text format)
+  //  Reference web: installation procedure 
+  const QString g_pythonScript = R"(F:\EllignoContract\BoDuc\pdfminerTxt\pdfminer-20140328\build\scripts-2.7\pdf2txt.py)";
+
+
 	constexpr bool greater_than( const bdAPI::BoDucFields& aField, const bdAPI::BoDucFields& aField2)
 	{
 		return aField.m_qty > aField2.m_qty;
@@ -854,6 +860,11 @@ namespace bdApp
 	// Open, load, save, process (buttons)
 	QGroupBox* BoDucReportCreator::createAnalyzerBox()
 	{
+    // an alternative of calling "grBox->setLayout(aLayout)"
+    // pass the widget to the layout ctor, in both case widget 
+    // takes the ownership of layout
+    //QGroupBox* w_analyzerBox = new QGroupBox(tr("AnalyzerBox"));
+    //QHBoxLayout* w_rowLayout = new QHBoxLayout(w_analyzerBox);
  		QHBoxLayout* w_rowLayout = new QHBoxLayout;
 
     // replace all those lines above by these below, can i do that?
@@ -913,11 +924,12 @@ namespace bdApp
     connect( w_settingsButton, SIGNAL(clicked()), this, SLOT(settingPath()));
 
 		// set layout of this box (does Group box taking ownership of the layout??)
+    // according to Qt documentation Widget::setLayout(), widget will take the ownership.  
     QGroupBox* w_analyzerBox = new QGroupBox( tr("AnalyzerBox"));
     QFont w_grbFont = w_analyzerBox->font();
     w_grbFont.setPixelSize(20);
     w_analyzerBox->setFont(w_grbFont);
-		w_analyzerBox->setLayout(w_rowLayout);
+		w_analyzerBox->setLayout(w_rowLayout); // see at the beginning of the method for detail about ownership 
 
 		return w_analyzerBox;
 	}
@@ -928,9 +940,6 @@ namespace bdApp
 	// Separate functionalities in different box
 	QGroupBox* BoDucReportCreator::createBonLivraisonBox()
 	{
-		// First Row (deprecated)
-//		QBoxLayout* w_row1 = createHBoxLayoutRow1();
-
 		// ... to be completed
 		QHBoxLayout* w_buttonsBot = new QHBoxLayout;
 
@@ -1131,7 +1140,7 @@ namespace bdApp
     for( const auto& key : m_unitLoadCapacity | boost::adaptors::map_keys) 
     {
       auto w_pbarNo = m_listUniteAvailable.at(i).split(" ")[1].toInt();
-      if (key==w_pbarNo) // check if we have same unit
+      if( key==w_pbarNo) // check if we have same unit
       {
         QLabel* w_pbarLabel = new QLabel(tr(m_listUniteAvailable.at(i++).toStdString().c_str()));
         QFont w_pbarFont = w_pbarLabel->font();
@@ -1193,7 +1202,7 @@ namespace bdApp
 //     msgError.exec();
 
     // check for supported file extension
-    if (!w_fileParser.isFileExtOk(m_filesName)) {
+    if( !w_fileParser.isFileExtOk(m_filesName)) {
       QMessageBox::StandardButton reply;
       reply = QMessageBox::warning( this, "Wrong file extension selected", "Need to select pdf file?",
         QMessageBox::Yes | QMessageBox::No);
@@ -1211,24 +1220,50 @@ namespace bdApp
     // convert pdf to txt format (swap pdf to txt)
     // Design Note: add a test to check if conversion succeed?
     // return a bool ? true : false or the list of converted files (QStringList)
-    convertPdf2Txt();
+    // need to call setQProcessEnv()
+    QProcessEnvironment w_procEnv = QProcessEnvironment::systemEnvironment();
+    w_procEnv.insert( "PYTHONPATH", "C:\\Python27\\Lib");
+    w_procEnv.insert( "PYTHONHOME", "C:\\Python27");
 
-    // parse each commands file 
-    std::list<std::string> w_listFilesName;
-    QStringList::const_iterator w_begList = m_filesName.constBegin();
-    QStringList::const_iterator w_endList = m_filesName.constEnd();
-    while (w_begList != w_endList)
+    // convert pdf to txt format
+    QStringList w_filesConverted = 
+      bdAPI::BoDucUtility::convertPdf2Txt( m_filesName, g_pythonScript, w_procEnv, this);
+
+    //QFile::remove();
+    // move file to different folder
+//     file.rename( g_pdfilesPath+"/"+ QString("DataValidation")+ "/" +fileInfo.fileName());
+//     auto complPath = fileInfo.absoluteFilePath();
+//     QDir w_wrkDir(g_pdfilesPath);
+//     QFileInfo w_finfo(*w_begList);
+//     auto fileName = w_finfo.fileName();
+//     QFile w_file( w_wrkDir.absolutePath() + "/" + fileName);
+//     QFileInfo w_checkWholePath(w_file);
+//     auto fileCheck = w_checkWholePath.absoluteFilePath();
+
+//     while (w_begList != w_endList)
+//     {
+//       //  std::cout << "Loading the following files: " << w_begList->toStdString() << std::endl;
+//       w_listFilesName.push_back( w_begList->toStdString());
+//       ++w_begList;
+//     }
+
+    // read files (...) and return list of files (text format) 
+    auto w_vecofCmd = bdAPI::BoDucCmdFileReader::readFiles( w_filesConverted);
+
+#if _DEBUG
+    // deleting txt file (these are temporaries, so might as well to delete it)
+    QStringListIterator w_listConvertFilesIter(w_filesConverted);
+    while( w_listConvertFilesIter.hasNext())
     {
-      //  std::cout << "Loading the following files: " << w_begList->toStdString() << std::endl;
-      w_listFilesName.push_back( w_begList->toStdString());
-      ++w_begList;
+      QFile file(w_listConvertFilesIter.next());
+      QFileInfo fileInfo(file);
+      if( QFile::remove( fileInfo.absoluteFilePath()))
+      {
+        // we definitively need a log file
+        std::cout << "Could not remove file from location\n";
+      }
     }
-
-    //  
-    auto w_vecofCmd = bdAPI::BoDucCmdFileReader::readFiles(w_listFilesName, std::string("Signature"));
-
-    // number of files selected by user
-    m_fileLoaded = w_vecofCmd.size();
+#endif // 
 
     // debugging purpose
     std::vector<bdAPI::BoDucFields> w_reportCmd;
@@ -1244,7 +1279,7 @@ namespace bdApp
       std::map<int, std::vector<std::string>>::const_iterator w_cmdFileBeg = begVecMap->cbegin();
 
       // go through all command in this file (map(int,vecstr))
-      while (w_cmdFileBeg != (*begVecMap).cend())
+      while( w_cmdFileBeg != (*begVecMap).cend())
       {
         // list of commands for a given file 
         std::vector<std::string> w_checkCmd = (*w_cmdFileBeg).second;
@@ -1300,15 +1335,7 @@ namespace bdApp
     // update command vector (db has been updated signal)
     // since new command has been added in file data store we have to reload  
     QFileInfo w_reportFileInfo(m_reportFolder, m_reportFile.fileName());
-    m_vectorOfCmd = bdAPI::BoDucUtility::loadCmdReportInVector(w_reportFileInfo.filePath());
-
-    // check for transporteur name
-//    if (w_fileParser.transporteurNameValid(m_filesName, m_lisTransporteur))
-//     {
-//     }
-
-    // if( !w_checkFileExt)
-    //   		convertPdf2Txt();
+    m_vectorOfCmd = bdAPI::BoDucUtility::loadCmdReportInVector( w_reportFileInfo.filePath());
   }
 
 	// called when "open" button clicked
@@ -1317,20 +1344,8 @@ namespace bdApp
 	{
     using namespace boost;
 
-    // no need to do that, it's done when reading file,
-    // transporteur name is checked and command discarded 
-    /// if does not appear.
-//     std::initializer_list<std::string> w_lisTransporteur =
-//     {
-//       "NIR R-117971-3 TRSP CPB INC",
-//       "NIR R-117971-3 TRANSPORT CPB",
-//       "NIR R-117971-3 C.P.B.",
-//       "BODUC- ST-DAMASE",
-//       "NIR R-004489-2 TR. BO-DUC"     //sometime we have empty (blank field) string
-//     };
-
     // now opening files to be processed (user selection)
-    QStringList m_filesName = QFileDialog::getOpenFileNames(this, tr("Open File"),
+    QStringList m_filesName = QFileDialog::getOpenFileNames( this, tr("Open File"),
       m_defaultDir,
       tr("Text (*.txt *.csv *.pdf)"));
 
@@ -1342,15 +1357,6 @@ namespace bdApp
       QMessageBox();
       return;
     }
-
-    // parse each commands file 
-    std::list<std::string> w_listFilesName;
-    QStringList::const_iterator w_begList = m_filesName.constBegin();
-    QStringList::const_iterator w_endList = m_filesName.constEnd();
-    while( w_begList != w_endList)
-    {
-      //  std::cout << "Loading the following files: " << w_begList->toStdString() << std::endl;
-      w_listFilesName.push_back( w_begList->toStdString());
 
 #if 0 // want to pass as argument the list of file instead of alist of file name 
       // some tests container of QFile
@@ -1368,17 +1374,10 @@ namespace bdApp
       auto fileName = w_checkFile.fileName();
       //++iter;
 #endif
-      
-      ++w_begList;
-    }
  
     // loop on each files in the list (fill vector map for processing multiple files in one step)
     // each map contains all command readed from a file (reminder: a can contains 1 or more command)
-    auto w_vecofCmd = bdAPI::BoDucCmdFileReader::readFiles( w_listFilesName, std::string("Signature"));
-
-    // number of files selected by user
- 		m_fileLoaded = w_vecofCmd.size();
-// 		m_bdApp.setNbSelectedFiles(m_fileLoaded);
+    auto w_vecofCmd = bdAPI::BoDucCmdFileReader::readFiles( m_filesName/*, std::string("Signature")*/);
 
     // debugging purpose
     std::vector<bdAPI::BoDucFields> w_reportCmd;
@@ -1403,7 +1402,7 @@ namespace bdApp
         if( std::any_of( w_checkCmd.cbegin(), w_checkCmd.cend(), [](const std::string& aStr) { return aStr.empty(); }))
         {
           w_checkCmd.erase( std::remove_if( w_checkCmd.begin(), w_checkCmd.end(), // delete empty element
-             []( const std::string& s) // check if an empty string
+             [] ( const std::string& s) // check if an empty string
              {
                 return s.empty();
              }), w_checkCmd.cend());
@@ -1415,13 +1414,6 @@ namespace bdApp
           ++w_cmdFileBeg; // ready for next command
           continue;
         }
-
-        // Need to check for tonnage tags: "TM" or "TON"
-//         if( !w_fileParser.isTransporteurNameValid(w_checkCmd, w_lisTransporteur))
-//         {
-//           ++w_cmdFileBeg; // ready for next command
-//           continue;
-//         }
 
         // use the std any algorithm (with a lambda as the predicate to find
         //if any of those are present in files) 
@@ -1475,22 +1467,6 @@ namespace bdApp
 //		QObject::connect( m_allDateCheck,     SIGNAL(stateChanged()),                this, SLOT(allDateChecked())); // deprecated
 	}
 
-// 	void bdApp::BoDucReportCreator::unitLoadConfig()
-// 	{
-//     // convention (tuple 3-element)
-//     // unit no, normal load, degel load -> std::make_tuple( 30,  17.,  14.)
-// 		m_listLoadValuesPerUnit.push_back( std::make_tuple( 30,  17.,  14.)); //unit 30
-// 		m_listLoadValuesPerUnit.push_back( std::make_tuple( 33,  31.,  25.)); //unit 33
-// 		m_listLoadValuesPerUnit.push_back( std::make_tuple( 103, 32.,  25.)); //unit 103
-// 		m_listLoadValuesPerUnit.push_back( std::make_tuple( 110, 32.,  25.)); //unit 110
-// 		m_listLoadValuesPerUnit.push_back( std::make_tuple( 111, 26.,  21.)); //unit 111
-// 		m_listLoadValuesPerUnit.push_back( std::make_tuple( 112, 38.5, 32.)); //unit 112
-// 		m_listLoadValuesPerUnit.push_back( std::make_tuple( 114, 38.5, 31.)); //unit 114
-// 		m_listLoadValuesPerUnit.push_back( std::make_tuple( 115, 32.,  25.)); //unit 115
-// 		m_listLoadValuesPerUnit.push_back( std::make_tuple( 116, 14.,  11.)); //unit 116
-// 		m_listLoadValuesPerUnit.push_back( std::make_tuple( 117, 38.5, 32.)); //unit 117
-// 	}
-
 	void bdApp::BoDucReportCreator::setUnitCapacityLoad()
 	{
     auto w_pbarUnitMapBeg = m_unitPbar.cbegin();
@@ -1511,101 +1487,14 @@ namespace bdApp
       }
       if (m_capacityLoad == eCapacityMode::normal)
       {
-        w_pbarUnitMapBeg->second->setMaximum(m_unitLoadCapacity[w_pbarUnitMapBeg->first].first); 
+        w_pbarUnitMapBeg->second->setMaximum(m_unitLoadCapacity[w_pbarUnitMapBeg->first].first); // normal load: pair(normal,degel) which is first 
       }
       else // degel
       {
-        w_pbarUnitMapBeg->second->setMaximum(m_unitLoadCapacity[w_pbarUnitMapBeg->first].second);
+        w_pbarUnitMapBeg->second->setMaximum(m_unitLoadCapacity[w_pbarUnitMapBeg->first].second); // degel load: pair(normal,degel) which is second
       }
       ++w_pbarUnitMapBeg;
     }//while-loop
-	}
-
-	void BoDucReportCreator::convertPdf2Txt()
-	{
-		// convert to txt file
-		const QString pythonScript = R"(F:\EllignoContract\BoDuc\pdfminerTxt\pdfminer-20140328\build\scripts-2.7\pdf2txt.py)";
-		const QString w_pdfilesPath = R"(F:\EllignoContract\BoDuc\QtTestGui\BoDucReportCreator\BoDucReportCreator\Data)";  //pdf files folder
-    //const QString w_pdfilesPath = R"(F:\EllignoContract\BoDuc\QtTestGui\BoDucReportCreator\BoDucReportCreator\Data\DataValidation)";  debugging purpose
-
-//     QDir w_txtFilesFolder;
-//     QString w_pathNow = QDir::current().absolutePath();
-//     w_txtFilesFolder.setPath(w_pathNow);
-//     QString w_repDirName = w_txtFilesFolder.dirName();
-
-    // directory validation
-    //if( QDir::exists(w_pdfilesPath)) {}
-
-		QProcess w_process(this);
-		QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
-		env.insert("PYTHONPATH", "C:\\Python27\\Lib");
-		env.insert("PYTHONHOME", "C:\\Python27");
-		w_process.setProcessEnvironment(env);
-		// Sets the working directory to dir. QProcess will start the process in this directory.
-		// The default behavior is to start the process in the working directory of the calling process.
-		w_process.setWorkingDirectory(w_pdfilesPath); // otherwise set path working dir of app
-
-		QStringList w_listofTxtFiles;
-		// number of files selected by user
-		QStringListIterator filesListIterator(m_filesName);
-		while( filesListIterator.hasNext())
-		{
-			// String list contains the whole path
-			QFileInfo w_fileInfo(filesListIterator.next());
-			QString w_fname = w_fileInfo.fileName();
-			QString w_bname = w_fileInfo.baseName();
-			QString w_absPath = w_fileInfo.absoluteFilePath();
-			QString w_complPdfFile = w_fname; // filename with corresponding extension
-			QString w_complTxtFile = w_bname + ".txt";
-			// Add a space at beginning of the file name 
-			QString w_txtPath = w_fileInfo.canonicalPath() + R"(/ )" + w_complTxtFile;
-			w_listofTxtFiles.push_back(w_txtPath);
-
-			QString w_ofile("-o ");
-			QStringList params;
-			//w_process.start("Python", params);
-			//			QStringList params;
-			//std::cout << filesListIterator.next().constData() << std::endl;
-			params << pythonScript << w_ofile + w_complTxtFile << w_complPdfFile;
-
-			w_process.start("Python", params);
-			if( w_process.waitForFinished(-1))
-			{
-				QByteArray p_stdout = w_process.readAll();
-				QByteArray p_stderr = w_process.readAllStandardError();
-				if (!p_stderr.isEmpty())
-					std::cout << "Python error:" << p_stderr.data();
-
-				//		qDebug() << "Python result=" << p_stdout;
-				if (!p_stdout.isEmpty())
-				{
-					std::cout << "Python conversion:" << p_stdout.data();
-				}
-				p_stdout; // write to console
-			}
-			// kill process
-			w_process.close();
-		}
-		// swap content, we are interested by .txt files (parsing) 
-		w_listofTxtFiles.swap(m_filesName);
-		// 		QDir w_checkFile(w_defaultDir);
-		// 		w_checkFile.cd("Data");
-		// 		QStringList w_dirList = w_checkFile.entryList();
-		// 		auto w_szz = w_dirList.size();
-		// 		for( const auto& w_fileName : w_dirList)
-		// 		{
-		// 			std::string w_str = w_fileName.toStdString();
-		// 			if( std::isspace(static_cast<char>(w_str[0])))
-		// 			{
-		// 				std::string w_noSpace(std::next(w_str.cbegin()), w_str.cend());
-		// 				QString w_newName(w_noSpace.c_str());
-		// 				w_checkFile.rename(w_fileName,QString("sas.txt"));
-		// 			}
-		// 		}
-
-		// Design Note
-		//  we need to change the extension of pdf file to be able to use our algorithm
-		//  for each of the file name in the list, retrieve extension 
 	}
 
   // Design Note:
@@ -1679,28 +1568,6 @@ namespace bdApp
 				}
 			}
       fillTableWidget2Display();
-//		}
-    		
-		// debugging purpose
-// 		switch (m_displaySelect)
-// 		{
-// 		case bdApp::BoDucReportCreator::eDisplayMode::all:
-// 			// show all cmd in the report files
-// 	//		m_vectorOfCmd = loadCmdReportInVector(w_filesName);
-// 	//		remDuplicateAndSort(m_vectorOfCmd);
-// 	//		m_vecOfCmd2Display = m_vectorOfCmd;
-// 			fillTableWidget2Display();
-// 			break;
-// 		case bdApp::BoDucReportCreator::eDisplayMode::date:
-// 			fillTableWidget2Display();
-// 			break;
-// 		case bdApp::BoDucReportCreator::eDisplayMode::dateRange:
-// 			fillTableWidget2Display();
-// 			break;
-// 		default:
-// 			break;
-// 		}
-		//m_vecOfCmd2Display.clear();  ready for next selection
 	}
 
   void BoDucReportCreator::setReportFolder()
@@ -1719,47 +1586,7 @@ namespace bdApp
   // clear all cmd in the display window
 	void bdApp::BoDucReportCreator::clearDispalyedCmd()
 	{
-		// these are for debugging purpose 
-// 		auto w_numberOfRows = m_tblWidget->rowCount();
-// 		auto w_v2displaySiz = m_vecOfCmd2Display.size();
 		m_tblWidget->clearContents();
 		m_tblWidget->setRowCount(0); // call removeRows()
-
-		// ... to be completed
-// 		for( auto i=0; i<m_vecOfCmd2Display.size();++i)
-// 		{
-// 			for (auto j=0; j<m_tblWidget->columnCount();++j)
-// 			{
-// 				QTableWidgetItem* w_toDel = m_tblWidget->item(i, j);
-// 				if (nullptr != w_toDel)
-// 				{
-// 					delete w_toDel;
-// 				}
-// 			}//item loop
-// 			m_tblWidget->removeRow(i);
-// 		}
-
-		// debugging purpose (should have zero count)
-		// if not, maybe set row count to 0, force it
-//		auto w_remainingRows = m_tblWidget->rowCount();
-		// call m_tblWidget to retrieve number of rows
-		// then call removeRow for each one
-//		m_vecOfCmd2Display.clear();
-//		auto vevcSize = m_vecOfCmd2Display.size();
-		// again make sure that everything is set to 0 
-		
-		// need to uncheck selection box
-// 		if (m_date2Check->isChecked())
-// 		{
-// 			m_date2Check->setCheckState(Qt::CheckState::Unchecked);
-// 		}
-// 		if(m_rngDate2Check->isChecked())
-// 		{
-// 			m_rngDate2Check->setCheckState(Qt::CheckState::Unchecked);
-// 		}
-// 		if (m_allDateCheck->isChecked())
-// 		{
-// 			m_allDateCheck->setCheckState(Qt::CheckState::Unchecked);
-// 		}
 	}
 } // End of namespace

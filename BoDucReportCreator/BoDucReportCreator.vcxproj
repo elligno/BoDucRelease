@@ -156,6 +156,8 @@
     <ClInclude Include="BdAPI\BoDucCmdText.h" />
     <ClInclude Include="BdAPI\BoDucCsvReader.h" />
     <ClInclude Include="BdAPI\BoDucFields.h" />
+    <ClInclude Include="BdAPI\BoDucFilePaser.h" />
+    <ClInclude Include="BdAPI\BoDucLineParser.h" />
     <ClInclude Include="BdAPI\BoDucParser.h" />
     <ClInclude Include="BdAPI\BoDucReaderfix.h" />
     <ClInclude Include="BdAPI\BoDucUtility.h" />

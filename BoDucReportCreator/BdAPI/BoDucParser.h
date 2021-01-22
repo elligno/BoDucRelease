@@ -17,7 +17,14 @@ namespace bdAPI { class BoDucBonLivraisonAlgorithm; }
 
 namespace bdAPI 
 {
-	// abstract base class
+	// abstract base class (not sure about that)
+  // Design Note:
+  //  Need a serious re-factoring, many of the methods are deprecated
+  //  New architecture (new types are under construction) which will 
+  //  take care of those deprecated methods 
+  // void parse(BoDucFileCmd) parse a command file
+  //  new type BoDucFileParser
+  //  
 	class BoDucParser
 	{
   public:
@@ -54,6 +61,7 @@ namespace bdAPI
     // return current file extension
     eFileType getFileExt() const { return m_fileExt; }
  
+    // deprecated
     // before extracting let's check so
     bool isTransporteurNameValid( const std::vector<std::string>& aCmdText,
       const std::initializer_list<std::string>& aListTransporteur) const
@@ -67,22 +75,26 @@ namespace bdAPI
       return false;
     }
 
+    // deprecated
     // let's in the meantime if we have the right file extension
     bool isFileExtOk( const QStringList& aListOfiles) const;
 
+    // deprecated
     //  to be completed
     bool hasAnyTM_TON( const std::vector<std::string>& aCmdText);
  
 	private:
+    // deprecated
 		//shall be in the BdApp class
 		bool useTM( const std::vector<std::string>& aVecOfCmdLines);
 
     eFileType m_fileExt; /**< file extension*/
 
-		// part of the refactoring
+		// part of the refactoring (deprecated)
 		BoDucBonLivraisonAlgorithm* m_fieldParserAlgo;  // deprecated
 		std::vector<BoDucFields> m_bdStruct; // not sure about this one??
 
+    // deprecated
     // lambda (anonymous) function declaration
     std::function<bool( const std::string &aStr2Look) > m_checkTransportName = []( const std::string& aStr2Look) -> bool
     {

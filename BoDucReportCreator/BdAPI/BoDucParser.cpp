@@ -37,6 +37,7 @@ namespace bdAPI
 		m_bdStruct.reserve(50); // default 
 	}
 
+  // deprecated
 	void BoDucParser::extractData( const mapIntVecstr& aListOfCmd,
 		BoDucBonLivraisonAlgorithm* aBonLivraisonAlgo)
 	{
