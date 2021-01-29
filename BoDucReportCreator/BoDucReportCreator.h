@@ -46,12 +46,12 @@ namespace bdApp
 		};
 
     // deprecated (piece of crapt)
-		enum class eDisplayMode
-		{
-			all=0, // display all cmd from file
-			date=1, // display cmd from user selection date
-			dateRange=2 // display cmd form a date range 
-		};
+// 		enum class eDisplayMode
+// 		{
+// 			all=0, // display all cmd from file
+// 			date=1, // display cmd from user selection date
+// 			dateRange=2 // display cmd form a date range 
+//		};
 	public:
 		BoDucReportCreator( QWidget *parent = Q_NULLPTR);
 		BoDucReportCreator( const BoDucReportCreator& aOther)=delete;
@@ -64,16 +64,16 @@ namespace bdApp
 
   public slots:
 		//void highlightChecked(QListWidgetItem* item);
-		void loadPdfFiles();
-		void loadCsvFiles();
-    void settingPath(); 
+	//	void loadPdfFiles();
+//		void loadCsvFiles();
+ //   void settingPath(); 
     void updateFileDataStore();  // update command in memory (vector)
 
    // void savetest();  do what?? deprecated
 		void saveCmdSelection();  // deprecated
     void saveUserSelection();  // connect to button "save selection"
 //		void open();      open command file for reading
-//		void setCapacityMode();
+		void setCapacityMode( /*eCapacityMode aCptyMode*/);
 		void showCmd();
 		//void allDateChecked();
 		void clearDispalyedCmd();
@@ -83,7 +83,7 @@ namespace bdApp
 		void currentUniteON();
 		void createBonLivraison();
 		void testItemClick( QTableWidgetItem* aItem); // deprecated
-    void userDblClickSelection( QTableWidgetItem* aItem);
+    void userDblClickSelection( QTableWidgetItem* aItem); // tobe removed
 		void insertHour(int rowNo, int columnNo); // ???
 	private:
     // Design Note
@@ -171,7 +171,7 @@ namespace bdApp
 		QString m_bonLivraisonFile; // deprecated
     QFile m_reportFile;
     unsigned short m_fileLoaded;
-		eDisplayMode m_displaySelect;
+//		eDisplayMode m_displaySelect;
 
 		// vector of all command fields that will be used 
 		QVector<QVariant> m_vecVariant;
@@ -192,7 +192,8 @@ namespace bdApp
     /** unit no is the key and value is a pair for normal/degel capacity */
     using unitloadCapact = std::map<int/*unit no*/, std::pair<double/*Normal*/, double/*Degel*/>>;
     
-    //  Should be put in file and loaded at app startup
+    //  Should be put in file and loaded at app startup 
+    //  Convention: (unit, normal, degel)
     unitloadCapact m_unitLoadCapacity{ { 30,{ 17.,14.}}, { 33,{ 31.,25.}},
     { 103,{ 32.,25.}}, { 110,{ 32.,25.}}, { 111,{ 26.,21.}},{ 112, { 38.5,32.}},
     { 114,{ 38.5,31.}},{ 115,{ 32.,25.}}, { 116,{ 14.,11.}},{ 117,{ 38.5,32.}} };
@@ -223,6 +224,6 @@ private:
     // location of the file database
     QDir m_reportFolder;
     void setReportFolder();
-    void setQProcessEnv( /*const QString& aPythonPath, const QString& aPdfPath*/);
+    //void setQProcessEnv( /*const QString& aPythonPath, const QString& aPdfPath*/);
 	};
 } // End of namespace

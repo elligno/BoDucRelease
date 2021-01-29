@@ -5,13 +5,12 @@
 #include <fstream>
 #include <string>
 #include <stdlib.h>
-
 // boost includes
 #include <boost/algorithm/string.hpp> // string algorithm
 #include <boost/algorithm/string/split.hpp> // splitting algo
-
 // Qt includes
 // #include <QFile>
+#include <QDir>
 #include <QFileInfo>
 #include <QTextStream>
 #include <QMessageBox>
@@ -50,7 +49,7 @@ namespace { // check if it is a valid character
 namespace bdAPI {
 
   BoDucCmdFileReader::vecmapstr BoDucCmdFileReader::readFiles( const QStringList& aFilesNameWithPath,
-    const std::string& aSplitBill /*= std::string("Signature")*/)
+    const std::string& aSplitCmdToken /*= std::string("Signature")*/)
   {
     // multiple files selection support
     std::vector<mapIntVecstr> w_vecOfMap; 
@@ -59,10 +58,10 @@ namespace bdAPI {
     {
       const auto& w_file2Proceed = w_filesIter.next();
       BoDucCmdFileReader::mapIntVecstr w_mapintVec =
-        readFile( w_file2Proceed.toStdString(), std::string("Signature"));
+        readFile( w_file2Proceed.toStdString(), aSplitCmdToken /*std::string("Signature")*/);
 
       // cannot bind a lvalue to rvalue (w_mapintVec)???
-      w_vecOfMap.push_back(std::move(w_mapintVec)); 
+      w_vecOfMap.push_back( std::move(w_mapintVec)); 
 
       // sanity check (according to the move semantic)
       assert(0 == w_mapintVec.size()); 
@@ -116,7 +115,7 @@ namespace bdAPI {
     const std::string w_fileName = check4Accent(aFileAnPath);
 
     // store our command as string
-    // shall be a vector of pair <string,vecstr> whith string is the file name
+    // shall be a vector of pair <string,vecstr> with string is the file name
     // corresponding to command vector of string (lines)
     mapIntVecstr w_mapintVec;
 
@@ -152,8 +151,8 @@ namespace bdAPI {
         // just a test
         // The given const char pointer is converted
         // to unicode using the fromUtf8() function
-        QString w_strFmt( line.data()); 
-        w_testStr.push_back( QString(line.data())); //  by using this, we don't have the scrapt of the std string
+//         QString w_strFmt( line.data()); 
+//         w_testStr.push_back( QString(line.data()));   by using this, we don't have the scrapt of the std string
 
         // NOTE we assume that we are at the last line of the command
         // then we check if the carrier string name is part of the whole 
@@ -224,7 +223,8 @@ namespace bdAPI {
     return mapIntVecstr();
   }
 
-  BoDucFileListCmdTxt BoDucCmdFileReader::readFile( const std::unique_ptr<QFile>& aFileAndPath)
+  // pass by reference no move semantic
+  BoDucFileListCmdTxt BoDucCmdFileReader::readFile( const std::unique_ptr<QFile>& aFileAndPath, QString cmdSep/* = QString("Signature")*/)
   {
     // QFileInfo w_fileInfo(*aFileAndPath);
     BoDucFileListCmdTxt w_bdFileListCmd(*aFileAndPath);
@@ -233,20 +233,24 @@ namespace bdAPI {
    // w_vecStr.reserve(50);
 
     // ready to read line
-    if( aFileAndPath->open( QFile::ReadOnly | QFile::Truncate))
+    if( aFileAndPath->open( QFile::ReadOnly | QFile::Text))
     {
+      // start reading line to cmd text format
+      // Shall be available to read file name with accent since 
+      // QTextStream use UTF-8 encoding 
       QTextStream w_readText(&(*aFileAndPath));
-      while (!w_readText.atEnd())
+      while( !w_readText.atEnd())
       {
         auto w_line = w_readText.readLine();
-        w_bdCmd.push_line(w_line.toStdString());
-        if( w_line.contains( QString("signature")))
+        w_bdCmd.push_line( w_line.toStdString());
+        if( w_line.contains(cmdSep))
         {
-          // Should also check for "tonnage" tags such as "TM" and "TON"
+          // NOTE: Should also check for "tonnage" tags such as "TM" and "TON"
           // check transporteur name
           if( w_bdCmd.hasTransporteurNameValid( m_lisTransporteur))
           {
-            // something to
+            // something to ...
+            // remove blank lines if any
             w_bdFileListCmd.add( BoDucCmdText(w_bdCmd));
             w_bdCmd.clearCommand(); // ready for next
           }
@@ -273,20 +277,42 @@ namespace bdAPI {
     return w_bdFileListCmd;
   }
 
-  std::vector<BoDucCmdText> BoDucCmdFileReader::readFiles( const std::forward_list<std::unique_ptr<QFile>>& aListFiles,
+  std::vector<BoDucFileListCmdTxt> BoDucCmdFileReader::readFiles( const std::forward_list<std::unique_ptr<QFile>>& aListFiles,
     QString cmdSep /*= QString("Signature")*/)
   {
-    const auto w_fileListBegin = aListFiles.cbegin();
+    // each file with corresponding command
+    std::vector<BoDucFileListCmdTxt> w_filesCmdTxt;
+
+    // 
+    auto w_fileListBegin = aListFiles.cbegin();
+    auto checkEmpty = std::distance(aListFiles.cbegin(), aListFiles.cend());
     while( w_fileListBegin != aListFiles.cend())
     {
-      const std::unique_ptr<QFile>& w_checkUniq1 = std::move(*w_fileListBegin);
-      
-      const auto& w_fil = std::move(*w_fileListBegin);
-      const std::unique_ptr<QFile>& w_jj = std::move(*w_fileListBegin);
+      // debugging purpose (will be removed)
+      const std::unique_ptr<QFile>& w_checkUniq1 = *w_fileListBegin;
+      QFileInfo w_finfo(*w_checkUniq1);
+      if( w_finfo.isFile())
+      {
+        auto aa1 = w_finfo.fileName();
+        auto bb1 = w_finfo.absoluteFilePath();
+        QDir w_dir = w_finfo.dir();
+        QString w_dNam = w_dir.dirName();
+        bool w_checkExist = w_finfo.exists();
+      }
+//       const auto& w_fil = std::move(*w_fileListBegin);
+//       const std::unique_ptr<QFile>& w_jj = std::move(*w_fileListBegin);
+//       QFileInfo w_checkInfoDbg(**w_fileListBegin);
+//       auto nameTest = w_checkInfoDbg.fileName();
+//       auto pathTest = w_checkInfoDbg.absoluteFilePath();
 
-      readFile( *w_fileListBegin);
-    }
-    return std::vector<BoDucCmdText>();
+ //     BoDucFileListCmdTxt w_test = readFile( *w_fileListBegin);
+      w_filesCmdTxt.push_back(readFile(*w_fileListBegin));
+
+      // increment iterator for next in the list
+      ++w_fileListBegin;
+    }//while-loop
+
+    return w_filesCmdTxt;
   }
 
   std::string BoDucCmdFileReader::check4Accent( const std::string &aFileAnPath)

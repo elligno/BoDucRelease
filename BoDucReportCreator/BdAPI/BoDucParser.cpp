@@ -15,13 +15,6 @@
 
 namespace bdAPI 
 {
-//   BoDucParser::BoDucParser()
-//   : m_fileExt(eFileType::csv),
-//     m_fieldParserAlgo(nullptr)
-//   {
-//     m_bdStruct.reserve(50);
-//   }
-
   BoDucParser::BoDucParser( const eFileType aFilext /*= eFileType::csv*/)
  : m_fileExt(aFilext),
    m_fieldParserAlgo(nullptr)
@@ -36,6 +29,8 @@ namespace bdAPI
     m_fileExt = eFileType::csv;
 		m_bdStruct.reserve(50); // default 
 	}
+
+#if 0
 
   // deprecated
 	void BoDucParser::extractData( const mapIntVecstr& aListOfCmd,
@@ -79,6 +74,8 @@ namespace bdAPI
       ++w_begMap; // next in the list
 		}//while-loop
 	}
+
+#endif
 
   BoDucFields BoDucParser::extractData( const std::vector<std::string>& aTextCmd)
 	{

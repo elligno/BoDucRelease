@@ -152,6 +152,7 @@
     <ClInclude Include="BdAPI\BoDucBaseReport.h" />
     <ClInclude Include="BdAPI\BoDucBonLivraison.h" />
     <ClInclude Include="BdAPI\BoDucBonLivraisonAlgorithm.h" />
+    <ClInclude Include="BdAPI\BoDucCmdDataExtractor.h" />
     <ClInclude Include="BdAPI\BoDucCmdFileReader.h" />
     <ClInclude Include="BdAPI\BoDucCmdText.h" />
     <ClInclude Include="BdAPI\BoDucCsvReader.h" />

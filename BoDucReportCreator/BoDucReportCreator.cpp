@@ -50,7 +50,7 @@ namespace {
 
   // Pdfminer tool (convert pdf files to text format)
   //  Reference web: installation procedure 
-  const QString g_pythonScript = R"(F:\EllignoContract\BoDuc\pdfminerTxt\pdfminer-20140328\build\scripts-2.7\pdf2txt.py)";
+//  const QString g_pythonScript = R"(F:\EllignoContract\BoDuc\pdfminerTxt\pdfminer-20140328\build\scripts-2.7\pdf2txt.py)";
 
 
 	constexpr bool greater_than( const bdAPI::BoDucFields& aField, const bdAPI::BoDucFields& aField2)
@@ -92,13 +92,14 @@ namespace bdApp
 {
 	BoDucReportCreator::BoDucReportCreator(QWidget *parent)
 	: QWidget(parent),
+    m_analyzerBox(Q_NULLPTR),
 		m_tblWidget(Q_NULLPTR),
 		m_listUnite(Q_NULLPTR),
 		m_saveSelectBtn(Q_NULLPTR),
 		m_bonCreateReport(Q_NULLPTR),
 		m_bonLivraisonFile("CommandReport.txt"),  // deprecated
-    m_reportFile( QString("CommandReport.txt")),
-		m_displaySelect(eDisplayMode::all) // default (deprecated)
+    m_reportFile( QString("CommandReport.txt"))
+//		m_displaySelect(eDisplayMode::all) // default (deprecated)
 	{
 		setWindowTitle("BoDucReportCreator");
 
@@ -110,22 +111,25 @@ namespace bdApp
     setReportFolder();
 
     // at start up we load the report file if it exist,
-    // otherwise we have to create it???
-    if( m_reportFolder.exists(m_reportFile.fileName()))
+    // otherwise we have to create it??? 
+    // file data store loaded in memory, ...
+    if( m_reportFolder.exists( m_reportFile.fileName()))
     {
       QFileInfo w_reportFileInfo(m_reportFolder, m_reportFile.fileName());
       m_vectorOfCmd = bdAPI::BoDucUtility::loadCmdReportInVector( w_reportFileInfo.filePath());
     }
 
-		// set display formating (Widget table) 
+		// set display formating (Widget table) and user selection config  
 		setupViews();
 
 		// create all components for the GUI
 		//createOtherWidgets(); // deprecated
-		createLayout();
+    // main layout of the main window (in this implementation it is not the case)
+    // but in the future the application inherit of the main widow
+		createLayout(); 
 		createConnections(); // deprecated
 
-    // load capacity for each unit
+    // initialize load capacity for each unit according to capacity mode (default is normal)
     setUnitCapacityLoad();
 
 		// ...
@@ -288,6 +292,8 @@ namespace bdApp
     // signal sent about new commands added to report file
     QFileInfo w_reportFileInfo(m_reportFolder, m_reportFile.fileName());
     m_vectorOfCmd = bdAPI::BoDucUtility::loadCmdReportInVector(w_reportFileInfo.filePath());
+
+    std::cout << "\n";
   }
 
   // DESIGN NOTE
@@ -446,6 +452,9 @@ namespace bdApp
 //            m_tblWidget->model()->index( w_currentUserSelect.row(), m_tblWidget->model()->columnCount() - 1)),
 //            QItemSelectionModel::Select);
 
+// If you want to select a full row, you should use the following :
+// selection->select(idx, QItemSelectionModel::Select | QItemSelectionModel::Rows);
+
     // what do we have here? index of column? yes it is
     // in a single selection, we have all columns index for a given row
     // we can retrieve the data item with the ... see testItemClick()
@@ -521,6 +530,23 @@ namespace bdApp
     
     // If you want to select a full row, you should use the following :
     // selection->select(idx, QItemSelectionModel::Select | QItemSelectionModel::Rows);
+  }
+
+  // slot (temporary until we move all stuff of the progress bar in a separate widget)
+  void BoDucReportCreator::setCapacityMode( /*eCapacityMode aCptyMode*/)
+  {
+    // At startup the application capacity mode is set to normal,
+    // if user change to degel, then to reset capacity load parameters 
+    if( m_capacityLoad == eCapacityMode::normal)
+    {
+      m_capacityLoad = eCapacityMode::degel;
+      setUnitCapacityLoad();
+    }
+    else
+    {
+      m_capacityLoad = eCapacityMode::normal;
+      setUnitCapacityLoad();
+    }
   }
 
   // design Note: maybe return the unit number instead of the string representation
@@ -856,84 +882,6 @@ namespace bdApp
 		// clear all data in the vector cmd to display ready for next query
 	}
 
-	// Top group box, actually it's the original buttons layout
-	// Open, load, save, process (buttons)
-	QGroupBox* BoDucReportCreator::createAnalyzerBox()
-	{
-    // an alternative of calling "grBox->setLayout(aLayout)"
-    // pass the widget to the layout ctor, in both case widget 
-    // takes the ownership of layout
-    //QGroupBox* w_analyzerBox = new QGroupBox(tr("AnalyzerBox"));
-    //QHBoxLayout* w_rowLayout = new QHBoxLayout(w_analyzerBox);
- 		QHBoxLayout* w_rowLayout = new QHBoxLayout;
-
-    // replace all those lines above by these below, can i do that?
-    QPushButton* w_loadCsvButton = new QPushButton( QString("Load .csv files"));
-    QFont w_font = w_loadCsvButton->font();
-    w_font.setPixelSize(17);
-    w_loadCsvButton->setFont(w_font);
-    w_rowLayout->addWidget( w_loadCsvButton); // stretch =0 and Qt::Alignment=alignment
-    w_rowLayout->addSpacing(70);
-    // connect signal/slot message 
-    connect( w_loadCsvButton, SIGNAL(clicked()), this, SLOT(loadCsvFiles()));
-
-    QPushButton* w_loadPdfButton = new QPushButton( QString("Load .pdf files"));
-    w_font = w_loadPdfButton->font();
-    w_font.setPixelSize(17);
-    w_loadPdfButton->setFont(w_font);
-    w_rowLayout->addWidget(w_loadPdfButton); // see comment above
-    w_rowLayout->addSpacing(70);
-    // connect signal/slot message
-    connect( w_loadPdfButton, SIGNAL(clicked()), this, SLOT(loadPdfFiles()));
-
-    // load type(normal/degel) 
-    QPushButton* w_capacitySelectButton = new QPushButton("Normal Load");
-    w_font = w_capacitySelectButton->font();
-    w_font.setPixelSize(17);
-    w_capacitySelectButton->setFont(w_font);
-    if( m_capacityLoad != eCapacityMode::normal) // default mode
-    {
-      w_capacitySelectButton->setText( QString("Degel Load"));
-    }
-
-    w_rowLayout->addWidget(w_capacitySelectButton); // see comment above
-    w_rowLayout->addSpacing(70);
-    connect( w_capacitySelectButton, &QPushButton::clicked, [this, w_capacitySelectButton]
-    {
-      if (m_capacityLoad == eCapacityMode::normal)
-      {
-        w_capacitySelectButton->setText( QString("Degel Load"));
-        m_capacityLoad = eCapacityMode::degel;
-      }
-      else
-      {
-        w_capacitySelectButton->setText( QString("Normal Load"));
-        m_capacityLoad = eCapacityMode::normal;
-      }
-    });
-
-		// settings (combo box to set some of the path needed to make the application work)
-    // need pdfminer path (installation of python 2.9 is required and set the path of 
-    // the exec to make it work and convert pdf to text)
-    QPushButton* w_settingsButton = new QPushButton(QString("Settings"));
-    w_font = w_settingsButton->font();
-    w_font.setPixelSize(17);
-    w_settingsButton->setFont(w_font);
-    w_rowLayout->addWidget(w_settingsButton);
-    w_rowLayout->addSpacing(70);
-    connect( w_settingsButton, SIGNAL(clicked()), this, SLOT(settingPath()));
-
-		// set layout of this box (does Group box taking ownership of the layout??)
-    // according to Qt documentation Widget::setLayout(), widget will take the ownership.  
-    QGroupBox* w_analyzerBox = new QGroupBox( tr("AnalyzerBox"));
-    QFont w_grbFont = w_analyzerBox->font();
-    w_grbFont.setPixelSize(20);
-    w_analyzerBox->setFont(w_grbFont);
-		w_analyzerBox->setLayout(w_rowLayout); // see at the beginning of the method for detail about ownership 
-
-		return w_analyzerBox;
-	}
-
 	// This need to be refactored, new buttons will be added
 	// Current design we create 2 horizontal box and ...
 	// Want a Box call Panel and another one call Report
@@ -1094,16 +1042,26 @@ namespace bdApp
 		//take ownership of the passed pointer (layout is responsible for deletion)  
     // see QLayout documentation mention that addWidget() use addItem()
     // which takes the ownership of the pointer
-		w_mainLayout->addWidget( createAnalyzerBox());
+	//	w_mainLayout->addWidget( createAnalyzerBox());
 
     //   w_mainLayout->addWidget( new AnalyzerBoxWidget()); next version
-    m_analyzerBox = new AnalyzerBoxWidget;
+    m_analyzerBox = new AnalyzerBoxWidget(this);
+    
+    // app notify when user finished loaded new files to be processed 
+    w_mainLayout->addWidget(m_analyzerBox);
+
     connect(m_analyzerBox, SIGNAL( commandLoaded()),
       this, SLOT( updateFileDataStore()));
 
+    // progress notify when user change capacity load (normal/degel)
+    connect(m_analyzerBox, SIGNAL(capacityLoadChanged(/*eCapacityMode*/)), 
+      this, SLOT(setCapacityMode(/*eCapacityMode*/)));
+
 		w_mainLayout->addWidget( createBonLivraisonBox());
 		w_mainLayout->addWidget( createProgressBarBox() /*m_uniteBox*/);
-		w_mainLayout->addWidget( setTableWidgetBox());
+		// make use of the new widget for progress bar
+    
+    w_mainLayout->addWidget( setTableWidgetBox());
 		//take ownership 
 		w_mainLayout->addLayout( setBottomButtons()); // should addWidget instead
 		w_mainLayout->setGeometry( QRect(600, 400, 0, 0));
@@ -1147,7 +1105,7 @@ namespace bdApp
         w_pbarFont.setPixelSize(17);
         w_pbarFont.setBold(true);
         w_pbarLabel->setFont(w_pbarFont);
-        m_unitPbar[key] = new QProgressBar;
+        m_unitPbar[key] = new QProgressBar; // insert in the map
 //        Qt::Orientation w_testOrientation = m_unitPbar[key]->orientation();
         m_unitPbar[key]->setOrientation(Qt::Vertical);
         m_unitPbar[key]->setTextVisible(true);
@@ -1181,6 +1139,7 @@ namespace bdApp
     return w_cmdBox;
 	}
 
+#if 0
   void BoDucReportCreator::loadPdfFiles()
   {
     // setting default directory to start with 
@@ -1337,123 +1296,12 @@ namespace bdApp
     QFileInfo w_reportFileInfo(m_reportFolder, m_reportFile.fileName());
     m_vectorOfCmd = bdAPI::BoDucUtility::loadCmdReportInVector( w_reportFileInfo.filePath());
   }
-
-	// called when "open" button clicked
-	// by default all files for testing are located in a folder named "DataToTest"
-	void BoDucReportCreator::loadCsvFiles()
-	{
-    using namespace boost;
-
-    // now opening files to be processed (user selection)
-    QStringList m_filesName = QFileDialog::getOpenFileNames( this, tr("Open File"),
-      m_defaultDir,
-      tr("Text (*.txt *.csv *.pdf)"));
-
-    // parse file to extract command
-    bdAPI::BoDucParser w_fileParser;
-
-    // check for file extension valid
-    if( !w_fileParser.isFileExtOk(m_filesName)) {
-      QMessageBox();
-      return;
-    }
-
-#if 0 // want to pass as argument the list of file instead of alist of file name 
-      // some tests container of QFile
-  //    QFile w_fileTst(*w_begList);
-      std::forward_list<std::unique_ptr<QFile>> w_fwdList;
-  //    std::list<QFile> w_check;
-  //    w_check.emplace_back( QDir::currentPath() + "aa.txt");
-      // shall use the emplace_back version (move semantic)
-      // build vector in-place directly (more efficient)
-      auto iter = w_fwdList.before_begin();
-      w_fwdList.emplace_after( iter++, std::make_unique<QFile>(*w_begList));
-      auto testSiz = w_fwdList.max_size();
-      std::unique_ptr<QFile> w_checkUniq(std::move(w_fwdList.front()));
-      QFileInfo w_checkFile(*w_checkUniq);
-      auto fileName = w_checkFile.fileName();
-      //++iter;
 #endif
- 
-    // loop on each files in the list (fill vector map for processing multiple files in one step)
-    // each map contains all command readed from a file (reminder: a can contains 1 or more command)
-    auto w_vecofCmd = bdAPI::BoDucCmdFileReader::readFiles( m_filesName/*, std::string("Signature")*/);
-
-    // debugging purpose
-    std::vector<bdAPI::BoDucFields> w_reportCmd;
-
-    // This represent command extracted from files selected by user.
-    // Each file is a map of vector of string (text rep of a command)
-    // ready to parse all command and save it to data store
-    // list of all files selected by user, check for each command in a file
-    for( auto begVecMap = w_vecofCmd.cbegin(); begVecMap != w_vecofCmd.cend(); ++begVecMap)
-    {
-      // Initialize first command for this file
-      // this map represent a file with all the commands  
-      std::map<int, std::vector<std::string>>::const_iterator w_cmdFileBeg = begVecMap->cbegin();
-
-      // go through all command in this file (map(int,vecstr))
-      while( w_cmdFileBeg != (*begVecMap).cend())
-      {
-        // list of commands for a given file 
-        std::vector<std::string> w_checkCmd = (*w_cmdFileBeg).second;
-
-        // check for some blank lines when converting from pdf to text
-        if( std::any_of( w_checkCmd.cbegin(), w_checkCmd.cend(), [](const std::string& aStr) { return aStr.empty(); }))
-        {
-          w_checkCmd.erase( std::remove_if( w_checkCmd.begin(), w_checkCmd.end(), // delete empty element
-             [] ( const std::string& s) // check if an empty string
-             {
-                return s.empty();
-             }), w_checkCmd.cend());
-        }
-
-        // maybe merge those 2 if
-        if( !w_fileParser.hasAnyTM_TON(w_checkCmd))
-        {
-          ++w_cmdFileBeg; // ready for next command
-          continue;
-        }
-
-        // use the std any algorithm (with a lambda as the predicate to find
-        //if any of those are present in files) 
-        auto bdField = w_fileParser.extractData(w_checkCmd);
-        w_reportCmd.push_back(bdField);
-        ++w_cmdFileBeg; // ready for next command 
-      }//while-loop
-    }//for-loop
-
-    // ready to save to data store
-    //bdApp::FileDataStore w_dataStore; 
-    //QFile w_reportFile( QString( "commandReport.txt"));
-    bdAPI::BoDucBaseReport w_tmpFile(m_reportFile);
-
-    // write to report file
-    w_tmpFile.createReport(w_reportCmd);
-
-    // Since we have changed the file data store, we need to reload it
-    // clear cache memory before the re-load and then reload the whole file
-    // update file database (load the whole file in memory)
-    if( !m_vectorOfCmd.empty())
-    {
-      m_vectorOfCmd.clear(); //empty last cmds
-    }
-
-    // update command vector (db has been updated signal)
-    // since new command has been added in file data store we have to reload  
-    QFileInfo w_reportFileInfo( m_reportFolder, m_reportFile.fileName());
-    m_vectorOfCmd = bdAPI::BoDucUtility::loadCmdReportInVector(w_reportFileInfo.filePath());
-	}
-
-  void bdApp::BoDucReportCreator::settingPath()
-  {
-    throw "Not implemented yet";
-  }
 
   // deprecated
   void BoDucReportCreator::createConnections()
 	{
-		QObject::connect( m_bonCreateReport, SIGNAL(clicked()),                      this, SLOT(createBonLivraison()));
+		QObject::connect( m_bonCreateReport, SIGNAL(clicked()),                      this, SLOT(createBonLivraison())); // deprecated
 //		QObject::connect( m_listUnite,       SIGNAL(activated(int)),                 this, SLOT(currentUniteON()));
 		//QObject::connect( m_saveSelectBtn,   SIGNAL(clicked()),                      this, SLOT(savetest())); deprecated
 		QObject::connect(m_saveSelectBtn,    SIGNAL(clicked()),                      this, SLOT(saveCmdSelection()));
@@ -1512,44 +1360,6 @@ namespace bdApp
       // case the whole table row is discarded, what we want
 			m_tblWidget->setRowCount(0); // set everything to zero
 		}                              
-
-		// create a vector of BoDucFields cmd to show
-		// switch case with 3 choices: all, date and date range
-    // get date from selection
-		// compare date with 
-
-    // to be removed (not sure)
-    // QTableWidget has a method for sorting, not sure how it works?
-//		auto myVec = bdAPI::BoDucUtility::remDuplicateAndSort(m_vectorOfCmd);
-
-		// check box state to display mode 
-//     if( m_allDateCheck->isChecked())
-//     {
-// 			m_displaySelect = eDisplayMode::all;
-// 			m_vecOfCmd2Display = bdAPI::BoDucUtility::remDuplicateAndSort(m_vectorOfCmd); //m_vectorOfCmd;
-//     }
-// 		else if( m_date2Check->isChecked())
-// 		{
-// 			m_displaySelect = eDisplayMode::date;
-// 
-// 			// retrieve the selected date in a given format 
-// 			QDate w_testDate = m_dateSelect->date();
-// 			QString w_fmtDate = w_testDate.toString(QString("yyyyMMdd"));
-// 			// now select only those that satisfied the selected date
-// 			for( const auto& val : bdAPI::BoDucUtility::remDuplicateAndSort(m_vectorOfCmd) /*m_vectorOfCmd*/)
-// 			{
-// 				std::string w_cpyDate = boost::replace_all_copy( val.m_datePromise, R"(/)", "");
-// 
-// 				// loop on the cmd vector
-// 				if( w_fmtDate.compare(QString(w_cpyDate.c_str())) == 0)
-// 				{
-// 					m_vecOfCmd2Display.push_back(val);
-// 				}
-// 			}//for-loop
-// 		}
-// 		else if( m_rngDate2Check->isChecked())
-// 		{
-// 			m_displaySelect = eDisplayMode::dateRange;
 
 			QDate w_minDate = m_dateMinSelected->date();
 			QString w_fmtMinDate = w_minDate.toString(QString("yyyyMMdd"));

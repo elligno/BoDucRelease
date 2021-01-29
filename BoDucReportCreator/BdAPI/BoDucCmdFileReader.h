@@ -33,17 +33,20 @@ namespace bdAPI
     static std::vector<mapIntVecstr> readFiles( const QStringList& aFilesNameWithPath ,
       const std::string& aSplitBill = std::string("Signature"));
 
+    /** Read a list of files (BoDuc command files)*/
+    static std::vector<BoDucFileListCmdTxt> readFiles( const std::forward_list<std::unique_ptr<QFile>>& aListFiles,
+      QString cmdSep = QString("Signature"));
+
   private:
     static mapIntVecstr readFile( const std::string& aFileAnPath,
-      const std::string& aSplitBill = "Ordered on");
+      const std::string& aSplitCmdToken = "Signature");
 
     // just a test for future dev
     static mapIntVecstr readFile( QFile& aFileAndPath);
 
-    /** Read a list of files (BoDuc command files)*/
-    std::vector<BoDucCmdText> readFiles( const std::forward_list<std::unique_ptr<QFile>>& aListFiles, 
-      QString cmdSep = QString("Signature"));
-    BoDucFileListCmdTxt readFile( const std::unique_ptr<QFile>& aFile);
+
+    /** */
+    static BoDucFileListCmdTxt readFile( const std::unique_ptr<QFile>& aFile, QString cmdSep = QString("Signature"));
 
     static std::string check4Accent( const std::string &aFileAnPath);
    };

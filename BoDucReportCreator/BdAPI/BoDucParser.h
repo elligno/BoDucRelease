@@ -50,7 +50,7 @@ namespace bdAPI
 		BoDucParser& operator= ( const BoDucParser& aOther) = delete;
 
 		// main algorithm to parse the csv file format of BoDuc (deprecated)
-		virtual void extractData( const mapIntVecstr& aListOfCmd, BoDucBonLivraisonAlgorithm* aReader);
+//		virtual void extractData( const mapIntVecstr& aListOfCmd, BoDucBonLivraisonAlgorithm* aReader);
 
 		// part of refactoring (vector of string reprsent a command)
 		virtual BoDucFields extractData( const std::vector<std::string>& aListOfCmd);

@@ -286,15 +286,27 @@ namespace bdAPI
     };
 
   public:
-    BoDucFileListCmdTxt( QFile& aFile /*eSrcType aSrctext = eSrcType::pdf2csv*/) : m_fileCmd(aFile), m_nbCmd(0) {}
+    BoDucFileListCmdTxt( QFile& aFile /*eSrcType aSrctext = eSrcType::pdf2csv*/) 
+    : m_fileCmd(aFile), 
+      m_fileName( QFileInfo(m_fileCmd).completeBaseName().toStdString()),
+      m_nbCmd(0) 
+    {
+      // not much to do for now
+    }
 
     // what about ctor??
-    bool add( const BoDucCmdText& aCmdTxt) { ++m_nbCmd; return false; } // debugging purpose
+    bool add( const BoDucCmdText& aCmdTxt) 
+    { 
+      ++m_nbCmd; 
+      return false; } // debugging purpose
+
     // move semantic avoid copying large amount of data without creating temporary
     void add( BoDucCmdText&& aCmdTxt)  
     {
-      // temporary, not sure if a forward list is apporpriate fo rthis task!
-      m_listOfCmd2File.emplace_after(m_listOfCmd2File.cbegin(), std::move(aCmdTxt));
+     // m_listOfCmd2File.push_front(aCmdTxt);
+      // temporary, not sure if a forward list is appropriate for this task!
+      m_listOfCmd2File.emplace_after( m_listOfCmd2File.before_begin(), aCmdTxt);
+      ++m_nbCmd;
     }
     bool remove() { return false; } // based on command number
 
@@ -307,8 +319,17 @@ namespace bdAPI
       return m_fileName;
     }
 
-    const QString& filename() const { return m_fileCmd.fileName(); }
-    void getFileExtension() const { return; }
+    const QString& filename() const 
+    {
+      QFileInfo w_fInfo(m_fileCmd);
+      return w_fInfo.completeBaseName(); 
+    }
+
+    const QString& getFileExtension() const
+    { 
+      QFileInfo w_fInfo(m_fileCmd);
+      return w_fInfo.completeSuffix();
+    }
 
     // let's in the meantime if we have the right file extension
     // support .csv and .txt
@@ -320,12 +341,15 @@ namespace bdAPI
       return w_checkFileInfo.completeSuffix();
     }
 
+    // just a test on how we should return element of the list 
+    BoDucCmdText getFront() const { return m_listOfCmd2File.front(); }
+
     // Iterator on BoDucCmdText must be supported (boost range iterator)
   private:
-    QFile& m_fileCmd;
-    std::string m_fileName;
+    QFile& m_fileCmd; /**< */
+    std::string m_fileName; /**< */
     // maybe a forward list?? singly linked list
-    std::forward_list<BoDucCmdText> m_listOfCmd2File;
-    size_t m_nbCmd;
+    std::forward_list<BoDucCmdText> m_listOfCmd2File; /**< */
+    size_t m_nbCmd; /**< */
   };
 } // End of namespace

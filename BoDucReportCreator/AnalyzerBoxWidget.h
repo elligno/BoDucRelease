@@ -36,7 +36,7 @@ private:
   QGroupBox* createAnalyzerBox();
 
   signals:
-    void capacityLoadChanged(eCptyMode);
+    void capacityLoadChanged(/*eCptyMode aCptyMode*/);
     void commandLoaded();          // new commands has been added to file data store 
 
   public slots:

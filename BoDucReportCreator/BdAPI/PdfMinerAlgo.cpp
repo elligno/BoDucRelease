@@ -130,6 +130,8 @@ namespace bdAPI
 		}
 	}
 
+#if 0
+
 	void PdfMinerAlgo::addBoDucField(const BoDucFields& aField2Add)
 	{
 		m_vecOfStruct.push_back(aField2Add);
@@ -155,6 +157,8 @@ namespace bdAPI
 	{
 		return size_t();
 	}
+
+#endif
 
 } // End of namespace
 
