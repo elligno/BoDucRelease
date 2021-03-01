@@ -13,8 +13,8 @@ namespace bdAPI
   {
   public:
 
-    // not sure if i should pass it as reference or value?
-    BoDucBaseReport(QFile& aRepFile);
+    // not sure if i should pass it as reference or value? good question
+    BoDucBaseReport( QFile& aRepFile);
 
     /** Base method to be overriden by subclass according to report type*/
     // it shall be abstract but for now we keep it this way
@@ -33,13 +33,14 @@ namespace bdAPI
     QDir m_reportFolder;
   };
 
-  // Create a bon livraison report
-  class BoDucBonLivraison : BoDucBaseReport 
-  {
-  public:
-    void setUnitNo(unsigned aUnitNo) { m_unitNo = aUnitNo; }
-    unsigned unitNo() { return m_unitNo; }
-  private:
-    unsigned m_unitNo; /**< unit number*/
-  };
+  // Done in a separate file
+//   // Create a bon livraison report
+//   class BoDucBonLivraison : BoDucBaseReport 
+//   {
+//   public:
+//     void setUnitNo(unsigned aUnitNo) { m_unitNo = aUnitNo; }
+//     unsigned unitNo() { return m_unitNo; }
+//   private:
+//     unsigned m_unitNo; /**< unit number*/
+//   };
 } //End of namespace

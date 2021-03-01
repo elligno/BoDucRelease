@@ -83,6 +83,12 @@
     <ClCompile Include="ProgressUnitBoxWidget.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="BdAPI\BoDucBonLivraison.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BdAPI\BoDucBonLivraisonReport.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="BoDucReportCreator.ui">
@@ -154,6 +160,18 @@
       <Filter>BoDucAPI Files</Filter>
     </ClInclude>
     <ClInclude Include="BdAPI\BoDucCmdDataExtractor.h">
+      <Filter>BoDucAPI Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BdAPI\BoDucFileDataStore.h">
+      <Filter>BoDucAPI Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BdAPI\BoDucBonLivraisonReport.h">
+      <Filter>BoDucAPI Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BdAPI\BoDucProDescrAnalyzer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BdAPI\BoDucProDescrAnalyzer.hpp">
       <Filter>BoDucAPI Files</Filter>
     </ClInclude>
   </ItemGroup>

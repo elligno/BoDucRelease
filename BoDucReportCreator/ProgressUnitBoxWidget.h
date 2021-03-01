@@ -49,4 +49,18 @@ private:
   QGroupBox* createVerticalProgressBarBox();
   void addProgressBar( QBoxLayout* aProgressBar, const std::string& aUniteNb);
   void setUnitCapacityLoad();
+
+  /** unit no is the key and value is a pair for normal/degel capacity */
+  using unitloadCapact = std::map<int/*unit no*/, std::pair<double/*Normal*/, double/*Degel*/>>;
+
+  //  Should be put in file and loaded at app startup 
+  //  Convention: (unit, normal, degel)
+  unitloadCapact m_unitLoadCapacity{ { 30,{ 17.,14. } },{ 33,{ 31.,25. } },
+  { 103,{ 32.,25. } },{ 110,{ 32.,25. } },{ 111,{ 26.,21. } },{ 112,{ 38.5,32. } },
+  { 114,{ 38.5,31. } },{ 115,{ 32.,25. } },{ 116,{ 14.,11. } },{ 117,{ 38.5,32. } } };
+
+  /** store all progress bar in a map with corresponding unit no*/
+  using unitpbar = std::map<int/*unit no*/, QProgressBar*>;
+  //unitpbar w_unitPbar;
+  unitpbar m_unitPbar;
 };

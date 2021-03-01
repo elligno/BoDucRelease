@@ -4,7 +4,9 @@
 #include <QHBoxLayout>
 #include <QProgressBar>
 #include <QMessageBox>
-
+// Boost include
+#include <boost/range/adaptors.hpp>
+#include <boost/algorithm/string.hpp>
 // application include
 #include "ProgressUnitBoxWidget.h"
 
@@ -28,9 +30,9 @@ void ProgressUnitBoxWidget::setUnitProgressBar( const QString& aUnitOn, double a
 {
  // bool ret = true;
   auto i = 0;
-  for (const QString& w_unitNo : m_listUniteAvailable)
+  for( const QString& w_unitNo : m_listUniteAvailable)
   {
-    if (aUnitOn.compare(m_listUniteAvailable.at(i)) == 0) // identical
+    if( aUnitOn.compare(m_listUniteAvailable.at(i)) == 0) // identical
     {
       double w_val2Show = m_progressBar[i]->value() + aVal2Update;
       if (w_val2Show > m_progressBar[i]->maximum())
@@ -95,34 +97,35 @@ void ProgressUnitBoxWidget::unitLoadConfig()
 
 void ProgressUnitBoxWidget::setUnitCapacityLoad()
 {
-  auto i = 0;
-  std::for_each( m_listLoadValuesPerUnit.cbegin(), m_listLoadValuesPerUnit.cend(),
-    [this, &i](const tplunitAndLoad& aUnitLoad)
-  {
-    if (!m_progressBar[i]->isEnabled())
+    auto w_pbarUnitMapBeg = m_unitPbar.cbegin();
+    auto w_pbarUnitMapEnd = m_unitPbar.cend();
+    while (w_pbarUnitMapBeg != w_pbarUnitMapEnd)
     {
-      m_progressBar[i]->setEnabled(true);
-    }
-    if (m_progressBar[i]->value() != 0)
-    {
-      // set initial value
-      m_progressBar[i]->setValue(0);
-    }
-    if (m_progressBar[i]->minimum() != 0)
-    {
-      m_progressBar[i]->setMinimum(0);
-    }
-    if( m_capacityLoad == eCptyMode::normal)
-    {
-      m_progressBar[i++]->setMaximum(std::get<1>(aUnitLoad));
-    }
-    else // degel
-    {
-      m_progressBar[i++]->setMaximum(std::get<2>(aUnitLoad));
-    }
-  });
+      if (!w_pbarUnitMapBeg->second->isEnabled())
+      {
+        w_pbarUnitMapBeg->second->setEnabled(true);
+      }
+      if (w_pbarUnitMapBeg->second->value() != 0)
+      {
+        w_pbarUnitMapBeg->second->setValue(0);
+      }
+      if (w_pbarUnitMapBeg->second->minimum() != 0)
+      {
+        w_pbarUnitMapBeg->second->setMinimum(0);
+      }
+      if (m_capacityLoad == eCptyMode::normal)
+      {
+        w_pbarUnitMapBeg->second->setMaximum(m_unitLoadCapacity[w_pbarUnitMapBeg->first].first); // normal load: pair(normal,degel) which is first 
+      }
+      else // degel
+      {
+        w_pbarUnitMapBeg->second->setMaximum(m_unitLoadCapacity[w_pbarUnitMapBeg->first].second); // degel load: pair(normal,degel) which is second
+      }
+      ++w_pbarUnitMapBeg;
+    }//while-loop
 }
 
+#if 0 //deprecated
 // Design Note
 //  In this version progress layout horizontally, but in the next
 //  version it will be vertically, only one row instead of two.
@@ -151,35 +154,44 @@ QGroupBox* ProgressUnitBoxWidget::createProgressUnitBox()
 
   return w_unitBarBox;
 }
+#endif
 
 QGroupBox* ProgressUnitBoxWidget::createVerticalProgressBarBox()
 {
-  // create a layout for progress bar in a vertical layout
-  QHBoxLayout* w_hProgressBar = new QHBoxLayout;
-  for( auto i = 0; i < m_listUniteAvailable.size(); ++i)
-  {
-    QLabel* w_barlbl = new QLabel( tr(m_listUniteAvailable.at(i).toStdString().c_str()));
-    // create the progress bar for this label
-    m_progressBar[i] = new QProgressBar;
+    // create a layout for progress bar in a vertical layout
+    QHBoxLayout* w_hProgressBar = new QHBoxLayout;
 
-    // just a test (may want to put vertical)
-    Qt::Orientation w_testOrientation = m_progressBar[i]->orientation(); // to be removed
-    if( m_progressBar[i]->orientation() == Qt::Horizontal) // by default
+    auto i = 0;
+    for( const auto& key : m_unitLoadCapacity | boost::adaptors::map_keys)
     {
-      m_progressBar[i++]->setOrientation(Qt::Vertical);
-      QVBoxLayout* w_lblBarLayout = new QVBoxLayout;
-      w_lblBarLayout->addWidget(m_progressBar[i++]);
-      w_lblBarLayout->addWidget(w_barlbl);
-      w_hProgressBar->addStretch(1);
-      w_hProgressBar->addLayout(w_lblBarLayout);
+      auto w_pbarNo = m_listUniteAvailable.at(i).split(" ")[1].toInt();
+      if (key == w_pbarNo) // check if we have same unit
+      {
+        QLabel* w_pbarLabel = new QLabel(tr(m_listUniteAvailable.at(i++).toStdString().c_str()));
+        QFont w_pbarFont = w_pbarLabel->font();
+        w_pbarFont.setPixelSize(17);
+        w_pbarFont.setBold(true);
+        w_pbarLabel->setFont(w_pbarFont);
+        m_unitPbar[key] = new QProgressBar; // insert in the map
+                                            //        Qt::Orientation w_testOrientation = m_unitPbar[key]->orientation();
+        m_unitPbar[key]->setOrientation(Qt::Vertical);
+        m_unitPbar[key]->setTextVisible(true);
+        QVBoxLayout* w_vlayoutPbar = new QVBoxLayout;
+        w_vlayoutPbar->addWidget(w_pbarLabel);
+        w_vlayoutPbar->addWidget(m_unitPbar[key]);
+        w_hProgressBar->addLayout(w_vlayoutPbar); // take the ownership of vlayout
+      }
     }
-  }//for-loop
 
-   // maybe create a group box and return it
-  QGroupBox* w_progressBarBox = new QGroupBox;
-  w_progressBarBox->setLayout(w_hProgressBar);
+    // maybe create a group box and return it
+    QGroupBox* w_unitBarBox = new QGroupBox(tr("Unit Capacity"));
+    QFont w_font = w_unitBarBox->font();
+    w_font.setPixelSize(20);
+    w_unitBarBox->setFont(w_font);
+    w_unitBarBox->setFixedHeight(150); // capacity box height fixed, should use a variable constexpr
+    w_unitBarBox->setLayout(w_hProgressBar); //take the ownership of hlayout
 
-  return w_progressBarBox;
+    return w_unitBarBox;
 }
 
 // deprecated

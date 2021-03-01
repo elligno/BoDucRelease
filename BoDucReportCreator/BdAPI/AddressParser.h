@@ -32,6 +32,41 @@ namespace bdAPI
 		const std::vector<std::string>& getVecPart() const { return m_vecPart; }
 		short getPosLivraison() const { return m_pos; }
 		void trimAdrsPart2Right();
+    std::vector<std::string> getShippedAddress()
+    {
+      switch (m_pattern)
+      {
+      case AddressParser::ePattern::NoMalfunction:
+        // check number of lines
+        return m_vecPart;
+        break;
+      case AddressParser::ePattern::DuplAddressSymmetric:
+        return std::vector<std::string>( m_vecPart.cbegin(), m_vecPart.cbegin()+m_vecPart.size()/2);
+        break;
+      case AddressParser::ePattern::DuplAddressNonSymmetric:
+        if( m_nbLines==6 && isLineTerminatewithCode(m_vecPart[2]))
+        {
+          return std::vector<std::string>(m_vecPart.cbegin()+ m_vecPart.size()/2, m_vecPart.cend());
+        }
+        return m_vecPart;
+        break;
+      case AddressParser::ePattern::Livraison:
+        return std::vector<std::string>();
+        break;
+      case AddressParser::ePattern::Middle3Lines:
+        return std::vector<std::string>();
+        break;
+      case AddressParser::ePattern::LastLineSrewUp:
+        return std::vector<std::string>();
+        break;
+      case AddressParser::ePattern::FirstLineWrong:
+        return std::vector<std::string>();
+        break;
+      default:
+        break;
+      }
+      return std::vector<std::string>();
+    }
 	private:
 		void analyze(); // set attribute of the address (check malfucntion in the address)
 		bool checkLivraisonKeyword(); // check if LIVRAION key word is part of the address

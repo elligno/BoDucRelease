@@ -7,8 +7,8 @@
 
 namespace bdAPI {
 
-  BoDucBaseReport::BoDucBaseReport( QFile & aRepFile)
-  :m_cmdReport(aRepFile)
+  BoDucBaseReport::BoDucBaseReport( QFile& aRepFile)
+  : m_cmdReport(aRepFile)
   {
   }
   void BoDucBaseReport::createReport( const std::vector<bdAPI::BoDucFields>& aData2Report)

@@ -10,49 +10,32 @@
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QDialogButtonBox>
 #include <QtWidgets/QHBoxLayout>
-#include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QProgressBar>
 #include <QtWidgets/QTableWidget>
 #include <QtWidgets/QHeaderView>
-//#include <QtCore/QTextStream>
 #include <QtCore/QFile>
-#include <QTextEdit>
 #include <QDateEdit>
 #include <QComboBox>
-#include <QProcess>
 #include <QLabel>
-#include <QTextStream>
+//#include <QTextStream>
 #include <QDateTime>
 #include <QDirIterator>
 #include <QFileDialog>
 #include <QFont>
 #include <QCheckBox>
 #include <QProxyStyle>
-// Boost includes
-#include <boost/algorithm/string/replace.hpp>
-#include <boost/range/iterator_range.hpp>
-#include <boost/range/algorithm.hpp>
+// Boost include
 #include <boost/range/adaptors.hpp>
-#include <boost/algorithm/string.hpp>
-#include <boost/lambda/lambda.hpp>
-#include <boost/lambda/if.hpp>
 // Application Widget includes
 #include "AnalyzerBoxWidget.h"
 // Application includes
 #include "BoDucReportCreator.h"
-#include "BdAPI/BoDucFields.h"
 #include "BdAPI/BoDucUtility.h"
-#include "BdAPI/BoDucCmdFileReader.h"
 #include "BdAPI/BoDucBaseReport.h"
+#include "BdAPI/BoDucBonLivraisonReport.h"
 
 namespace {
-
-  // Pdfminer tool (convert pdf files to text format)
-  //  Reference web: installation procedure 
-//  const QString g_pythonScript = R"(F:\EllignoContract\BoDuc\pdfminerTxt\pdfminer-20140328\build\scripts-2.7\pdf2txt.py)";
-
-
 	constexpr bool greater_than( const bdAPI::BoDucFields& aField, const bdAPI::BoDucFields& aField2)
 	{
 		return aField.m_qty > aField2.m_qty;
@@ -90,22 +73,16 @@ namespace {
 
 namespace bdApp 
 {
-	BoDucReportCreator::BoDucReportCreator(QWidget *parent)
+	BoDucReportCreator::BoDucReportCreator( QWidget *parent/*=nullptr*/)
 	: QWidget(parent),
     m_analyzerBox(Q_NULLPTR),
 		m_tblWidget(Q_NULLPTR),
 		m_listUnite(Q_NULLPTR),
-		m_saveSelectBtn(Q_NULLPTR),
-		m_bonCreateReport(Q_NULLPTR),
 		m_bonLivraisonFile("CommandReport.txt"),  // deprecated
     m_reportFile( QString("CommandReport.txt"))
 //		m_displaySelect(eDisplayMode::all) // default (deprecated)
 	{
 		setWindowTitle("BoDucReportCreator");
-
-    // testing purpose
-//     QFileInfoList w_test = QDir::drives();
-//     auto numOfDrives = w_test.size();
    
     // set some environment variable
     setReportFolder();
@@ -132,8 +109,11 @@ namespace bdApp
     // initialize load capacity for each unit according to capacity mode (default is normal)
     setUnitCapacityLoad();
 
-		// ...
+		// deprecated (use vector)
 		initMapUserSelection();
+
+    // new version with BonLivraison type 
+    createMapBonLivraison();
 
 		// create the user interface
 		ui.setupUi(this);
@@ -156,22 +136,23 @@ namespace bdApp
     });
   }
 
+  // deprecated
 	void BoDucReportCreator::initMapUserSelection()
 	{
 		// initialize some data structure ()
 		auto i = 0;
 		QStringList::const_iterator w_begList = m_listUniteAvailable.cbegin();
-		while (w_begList != m_listUniteAvailable.cend())
+		while( w_begList != m_listUniteAvailable.cend())
 		{
 			QString w_unit = m_listUniteAvailable.value(i++);
 			QStringList w_splittedStr = w_unit.split(" ");
-			auto w_unitNo = w_splittedStr[1]; // white space should have 2 element 
+			auto w_unitNo = w_splittedStr[1]; // white space should have 2 elements 
 
 			// build map structure with key = unit number and value a vector of command field  
 			// used to build "bon de livraison" report per unit (each unit has a "bon de livraison") 
 			std::vector<bdAPI::BoDucFields> w_vecofSSaved;
 			w_vecofSSaved.reserve(100);
-			if( m_cmdUnitSaved.insert( std::make_pair(w_unitNo.toInt(), w_vecofSSaved)).second == false)
+			if( m_cmdUnitSaved.insert( std::make_pair( w_unitNo.toInt(), w_vecofSSaved)).second == false)
 			{
 				// logger some message such as could not insert the following item
 				std::cout << "Could not insert cmd unit\n"; // should be a qDebug()
@@ -179,6 +160,25 @@ namespace bdApp
 			++w_begList;
 		}
 	}
+
+  void BoDucReportCreator::createMapBonLivraison()
+  {
+    // initialize some data structure ()
+    auto i = 0;
+    QStringList::const_iterator w_begList = m_listUniteAvailable.cbegin();
+    while( w_begList != m_listUniteAvailable.cend())
+    {
+      QString w_unit = m_listUniteAvailable.value(i++); /// unit xx format 
+      QStringList w_splittedStr = w_unit.split(" ");
+      auto w_unitNo = w_splittedStr[1]; // take second element of the split
+      if( m_unitBonLivraison.insert( std::make_pair( w_unitNo.toInt(), bdAPI::BoDucBonLivraison(w_unitNo.toInt()))).second == false)
+      {
+        // logger some message such as could not insert the following item
+        std::cout << "Could not insert cmd unit\n"; // should be a qDebug()
+      }
+      ++w_begList;
+    }
+  }
 
 	// NOT COMPLETD *******************************
 	// at the moment we support 10 unit just do a check on each of them
@@ -237,15 +237,6 @@ namespace bdApp
 		return ret;
 	}
 
-	// IMPORTANT maximum value for each unit is determined by the time period (normal/degel)
-	// There is a document "Unite + capacite de charge.pdf" where specs for each mode is defined. 
-	// Each unit has its own value
-	// just configuring the progress bar to display
-// 	void BoDucReportCreator::initProgressBar()
-// 	{
-// 		setUnitCapacityLoad();
-// 	}
-
   //TODO: deprecated
 // 	void BoDucReportCreator::savetest()
 // 	{
@@ -292,145 +283,15 @@ namespace bdApp
     // signal sent about new commands added to report file
     QFileInfo w_reportFileInfo(m_reportFolder, m_reportFile.fileName());
     m_vectorOfCmd = bdAPI::BoDucUtility::loadCmdReportInVector(w_reportFileInfo.filePath());
-
-    std::cout << "\n";
   }
 
-  // DESIGN NOTE
-  //  this is not the correct way to manage user selection. There are types
-  //  to help in this task (QItemSlectionModel, QItemSelection, QITemSelectionRange)
-  //  that keep tracking of user selection. In the implementation above it is very 
-  //  hard to keep tracking of these selection because the only relevant information
-  //  comes from check box state.  
-  //  We also retrieve QTableWidgetItem, no need to do that, by using QModelIndex
-  //  we can retrieve the value that we look for (modelIdx->data()) with display role 
-  //  default.
-  //  Need to get selection form user and then retrieve data with the QItemSelectionModel,
-  //  i am not sure but QItemSlectionModel keep track of all user selection (to be validated)
-  //  this is a piece of crapt, will refactored using the Qt selection mechanism 
-  // it will takes less code and more readable, because this is hardly understaneable!!! 
- 	void BoDucReportCreator::saveCmdSelection()
- 	{
-// 		// alias <cmdNo, shippedTo, deliveryDate, prod code, prod, qty, silo>
- 		using bdTpl = std::tuple<std::string, std::string, std::string, long, std::string, float, std::string>; 
-
-		// Once command has been selected and user satisfy,
-		// click "save" button to store those in memory. Only 
-		// when user click "proceed" that the bon livraison file
-		// is created. 
-		// code to save the user selection to our map vector where key = unit number
-		// 
-		// *******************************************************************************
-		// Design Note
-		//  Since we want to create bon livraison with checked item
-		//  loop on all row and check 
-		//  
-		// unit number
-		QString w_curUnit = m_listUnite->currentText();
-		auto w_unitNo = w_curUnit.split(" ")[1]; // second is the number
-		unsigned w_No = w_unitNo.toUInt();
-		std::vector<bdAPI::BoDucFields>& w_vec = m_cmdUnitSaved[w_No];
-		auto w_rowCount = m_tblWidget->rowCount();
-
-    // loop on all rows of the table view and search for checked box
- 		for( auto rCount = 0; rCount < w_rowCount; ++rCount) // each saved cmd
- 		{
-			QTableWidgetItem* w_checkedItem = m_tblWidget->item(rCount, 0);
-			if( nullptr == w_checkedItem)
-			{
-				return; // at the end of cmd to display
-			}
-
-			// now check state value, if it is checked then add it to the map
-			// otherwise go to the next one 
-	//		Qt::CheckState w_chkState = w_checkedItem->checkState();
-			if( Qt::CheckState::Checked != w_checkedItem->checkState())
-			{
-				continue;
-			}
-			
-      // need it to delete the row once saved
-			auto w_curowSelected = m_tblWidget->currentRow();
-			QTableWidgetItem* w_hourItem = m_tblWidget->item(rCount, 1); 
-			QString w_cmdHour = w_hourItem->text();
-
-// 			// unit number
-// 			QString w_curUnit = m_listUnite->currentText();
-// 			auto w_unitNo = w_curUnit.split(" ")[1]; // second is the number
-// 			unsigned w_No = w_unitNo.toUInt();
-			if( m_cmdUnitSaved.find(w_No) != m_cmdUnitSaved.cend())
-			{
-				// retrieve vector of cmd for this unit
-//				std::vector<bdAPI::BoDucFields>& w_vec = m_cmdUnitSaved[w_No];
-// 				bdTpl w_boducTpl;
-// 				QVector<QVariant> w_bdField;
-// 				w_bdField.reserve(7);
-				bdTpl w_bdTuple;
-				auto colNumber = m_tblWidget->columnCount();
-				for( auto colNo = 2; colNo < m_tblWidget->columnCount(); ++colNo)
-				{
-					QTableWidgetItem* w_colItem = m_tblWidget->item(rCount, colNo);
-				  QVariant w_val = w_colItem->data(Qt::DisplayRole);
-					switch (colNo)
-					{
-					case 2: //command no
-						// 
-						std::get<0>(w_bdTuple) = w_val.toString().toStdString();
-						break;
-					case 3: //
-						// shippedTo
-						std::get<1>(w_bdTuple) = w_val.toString().toStdString();
-						break;
-					case 4: //date  
-						// date
-						std::get<2>(w_bdTuple) = w_val.toString().toStdString();
-						break;
-					case 5: // product code
-						std::get<3>(w_bdTuple) = w_val.toInt();
-						break;
-					case 6: // product descr.
-						std::get<4>(w_bdTuple) = w_val.toString().toStdString();
-						break;
-					case 7: // quantity
-						std::get<5>(w_bdTuple) = w_val.toFloat();
-						break;
-					case 8: //silo no
-						std::get<6>(w_bdTuple) = w_val.toString().toStdString();
-						break;
-					default://???
-						break;
-					}//switch
- 				}//for-loop (column)
-
-				// need to show 
-				if( !updateUnitProgress(std::get<5>(w_bdTuple)))
-				{
-					continue; // we don't want keep it in the cmd to display 
-				}
-
- 				 // need to fill vector with data (vector to display)
-        // NOTE i do not think that i move anything here, because 'w_bdTuple' is a "lvalue"
-        // can't bind 'lvalue' to 'rvalue', std::move is not relevant or has no effect 
-        // need to check first but shall remove the std::move  
- 				w_vec.push_back( bdAPI::BoDucFields( std::move(w_bdTuple)));
- 			}//if
-			
-       // delete row from display widget and its items
-			m_tblWidget->removeRow(rCount);          // row number
-			auto checkDbg = m_tblWidget->rowCount(); // debugging purpose
- 		}//for-loop (row)
-  }
-	
   // Next version of the command selection saving mechanism
   // just testing the selection mechanism. Not sure about what is returned
   // since we have set the behavior to row (return the row) about the index?
   // In this use case, user have selected a command in the view and press 
   // "save" button.
-  void BoDucReportCreator::saveUserSelection()
+  void BoDucReportCreator::saveUserSelection(QTableWidgetItem* aItem)
   {
-    // unit number (avoid creating a working variable)
-    //std::vector<bdAPI::BoDucFields>& w_vec = m_cmdUnitSaved[m_listUnite->itemText(m_listUnite->currentIndex()).split(" ")[1].toUInt()];
-
     const auto w_unitNo = m_currUnityON.split(" ")[1].toUInt(); // second is the unit number ("unit 30")
 
     // do we have a reference semantic here? good question!!
@@ -458,30 +319,31 @@ namespace bdApp
     // what do we have here? index of column? yes it is
     // in a single selection, we have all columns index for a given row
     // we can retrieve the data item with the ... see testItemClick()
-    QModelIndexList w_mdlIdx = m_tblWidget->selectionModel()->selectedIndexes();
+    QModelIndexList w_mdlIdxList = m_tblWidget->selectionModel()->selectedIndexes();
+
+    // ... to be completed
+    bdAPI::BoDucFields w_bdFields;
+
+    auto w_rowNo = 0;
 
     // Go through the list of model index (actually column)
-    QListIterator<QModelIndex> w_listMdlIdxIter(w_mdlIdx);
+    QListIterator<QModelIndex> w_listMdlIdxIter(w_mdlIdxList);
     while( w_listMdlIdxIter.hasNext())
     {
       // 0: check box (not a display role)
       // 1: hour (not a display role)
       // 2: all other item have a display role
       QModelIndex w_mdlIdx = w_listMdlIdxIter.next();  // discard not displayable
-//       if( w_mdlIdx.flags() == Qt::ItemFlag::ItemIsEditable || 
-//           w_mdlIdx.flags() ==  Qt::ItemFlag::ItemIsUserCheckable)
-//       {
-//         continue;
-//       }
 
       // debugging purpose (first column which is the check box should return not valid)
       // test below shall check for !w_val.isValid() i.e. not valid
       QVariant w_valDbg = w_mdlIdx.data();
+      w_rowNo = w_mdlIdx.row(); // row number selected by user
+      auto checkDbg = m_tblWidget->rowCount(); // debugging purpose
 
       // correspond to what index? column format is the following:
-      bdAPI::BoDucFields w_bdFields;
       QVariant w_val = w_mdlIdx.data();
-      if( w_val.isValid() || w_mdlIdx.column() == 1) // first column are not valid data (check box )
+      if( !w_val.isValid() || w_mdlIdx.column() == 1) // first column are not valid data (check box )
       {                                              // not of the logical minding!!!      
         continue;
       }
@@ -517,9 +379,6 @@ namespace bdApp
         break;
       }//switch
 
-      // add the command to unit 
-      w_vec.push_back(w_bdFields);
-
       // change background to show that item has been selected (item selected background becomes red)
       // not sure because with the selection mechanism ON, once we have selected a command in table 
       // view, it is high lighted 
@@ -527,7 +386,35 @@ namespace bdApp
 //       QBrush w_brush = w_tblWgtItem->background();
 //       w_brush.setColor(Qt::darkRed);
     }//while-loop (column)
-    
+
+    // +++++++++++++++++++++++++++++++++++++++ new stuff
+    // map of bon livraison
+    bdAPI::BoDucBonLivraison& w_bonLivraison = m_unitBonLivraison[w_unitNo];
+    w_bonLivraison.addCmd( w_bdFields);
+    // +++++++++++++++++++++++++++++++++++++++
+
+    // need to show 
+    if( updateUnitProgress( w_bdFields.qty()))
+    {
+      //continue;  we don't want keep it in the cmd to display 
+    // add the command to unit 
+      w_vec.push_back(w_bdFields);
+
+      // delete row from display widget and its items
+      m_tblWidget->removeRow(w_rowNo); // row number user selection
+                    
+      // warn user that data sore updated, need to press 'ok'
+      QMessageBox msgBox;
+      msgBox.setText("Command selection saved.");
+      msgBox.exec();
+    }
+    else // Exceed capacity
+    {
+      // warn user that data sore updated, need to press 'ok'
+      QMessageBox msgBox;
+      msgBox.setText("Command selection not saved.");
+      msgBox.exec();
+    }
     // If you want to select a full row, you should use the following :
     // selection->select(idx, QItemSelectionModel::Select | QItemSelectionModel::Rows);
   }
@@ -556,10 +443,6 @@ namespace bdApp
 		// user change unity selection
 		int w_uniteCurrent = m_listUnite->currentIndex(); // user choice
 		m_currUnityON = m_listUnite->itemText(w_uniteCurrent);
-
-    // string format is: "unit xx", 
-    //  split about white space and return last element converted to uint 
-    //return m_listUnite->itemText(w_uniteCurrent).split(" ")[1].toUInt();
 	}
 
 	// Design Note:
@@ -567,77 +450,36 @@ namespace bdApp
 	//  create report for each transport unit
 	void BoDucReportCreator::createBonLivraison()
 	{
-		//unite ON
-		QString w_uniteON = m_listUnite->currentText();
-		QStringList w_splitedUnit = w_uniteON.split(" ");
-		// If you want to retrieve all the values for a single key, 
-		// you can use values(const Key &key), which returns a QList<T>:
-// *****************************
-		QList<tplbonlivraison> w_unitDataBon;
-		// retrieve vector of cmd for this unit that user has saved
-		std::vector<bdAPI::BoDucFields>& w_unitVec = m_cmdUnitSaved[w_splitedUnit[1].toUInt()];
-		for( const bdAPI::BoDucFields& val : w_unitVec)
-		{
-			w_unitDataBon.push_back( std::make_tuple( QString(val.m_deliverTo.c_str()),
-				QString(val.m_produit.c_str()),
-				val.m_qty, QString(val.m_silo.c_str()).toUShort()));
-		}
-// *****************************
-		// retrieve data to create bon de livraison for each unit
-		// shippedTo, product, qty, silo
-//		QList<tplbonlivraison> values = m_unitBonLivraisonData.values(w_uniteON); original
+    // input file dialog?? user select a folder to save bon livraison report 
+    // this is a path or a name? i would say that's a path
+    QString w_dirUserSelect = QFileDialog::getExistingDirectory( this, tr("Open Directory"),
+      QDir::currentPath(),
+      QFileDialog::ShowDirsOnly
+      | QFileDialog::DontResolveSymlinks);
+   
+    QString w_uniteON = m_listUnite->currentText();
+    QStringList w_splitedUnit = w_uniteON.split(" ");
+    bdAPI::BoDucBonLivraison w_bonToReport = m_unitBonLivraison[w_splitedUnit[1].toUInt()];
+    bdAPI::BonLivraisonReport w_test2CreateReport;
+    w_test2CreateReport.setFolderName(w_dirUserSelect);
+    w_test2CreateReport.createReport(w_bonToReport);
 
-		//QDir w_reportFolder; 
-		QString w_path = QDir::currentPath();
-		QString w_bonLivraisonFile = w_uniteON + "_BonLiveraison.txt";
-		QFileInfo w_fileRep( w_path, w_bonLivraisonFile);
-		// create a new file with the given name
-		QFile w_data(w_fileRep.absoluteFilePath());
-		if( !w_fileRep.exists(w_bonLivraisonFile))
-		{
-			QTextStream out(&w_data);
-			// then create it write report
-			if( w_data.open(QFile::WriteOnly | QFile::Text))
-			{
-				for (int i = 0; i < w_unitDataBon.size(); ++i)
-				{
-					tplbonlivraison w_val2File = w_unitDataBon.at(i);
-					out << w_uniteON << "\t" << std::get<0>(w_val2File) << "\t" << std::get<1>(w_val2File) << "\t"
-						<< std::get<2>(w_val2File) << "\t" << std::get<3>(w_val2File) << "\t" << "\n";
-				}
-			}
-		}
-		else
-		{
-			// open and append it
-			if( w_data.open(QFile::WriteOnly | QFile::Text | QFile::Append))
-			{
-				QTextStream out(&w_data);
-				for (int i = 0; i < w_unitDataBon.size(); ++i)
-				{
-					tplbonlivraison w_val2File = w_unitDataBon.at(i);
-					out << w_uniteON << "\t" <<  std::get<0>(w_val2File) << "\t" << std::get<1>(w_val2File) << "\t"
-						  << std::get<2>(w_val2File) << "\t" << std::get<3>(w_val2File) << "\t" << "\n";
-				}
-			}
-		}
-		w_data.close();
-
-		// new stuff
-		QMessageBox::StandardButton reply;
-		reply = QMessageBox::question(this, "Livraison Final", "",
-			QMessageBox::Yes | QMessageBox::No);
-		if( reply == QMessageBox::Yes) {
-			// delete all commands
-			w_unitVec.clear();
-// 			qDebug() << "Yes was clicked";
-// 			QApplication::quit();
-		}
-		else {
-		//	qDebug() << "Yes was *not* clicked";
-		}
+ 
+// 		QMessageBox::StandardButton reply;
+// 		reply = QMessageBox::question(this, "Livraison Final", "",
+// 			QMessageBox::Yes | QMessageBox::No);
+// 		if( reply == QMessageBox::Yes) {
+// 			// delete all commands
+// 			w_unitVec.clear();
+// // 			qDebug() << "Yes was clicked";
+// // 			QApplication::quit();
+// 		}
+// 		else {
+// 		//	qDebug() << "Yes was *not* clicked";
+// 		}
 	}
 
+#if 0
 	// TODO: deprecated 
 	// selected a row with mouse (deprecated)
   // in the next version: QSelectionItemModel 
@@ -683,7 +525,7 @@ namespace bdApp
           // shipped to
           //
         }
-      }
+      }//while-loop
 
       //
       // code below is ok but not the way to do it, Qt provides types 
@@ -734,30 +576,7 @@ namespace bdApp
 			m_unitBonLivraisonData.insert(m_currUnityON, m_bdBonFields);
 		}
 	}
-
-  // Refactoring the selection model 
-  // This is the right way to do it. QItemSelectionModel and QItemSelection
-  // types to manage user selection (right way to do it)
-  // In the current implementation (saveCmdSelection()) we check
-  // checkBox state (checked | notChecked) and retireve QWidgetItem  
-  //
-  // User select by double clicking item ()
-  void BoDucReportCreator::userDblClickSelection(QTableWidgetItem* aItem)
-  {
-    QItemSelectionModel* w_selection = aItem->tableWidget()->selectionModel();
-
-    // some stuff to be tested
-    // select an entire row using an QItemSelection :
-    // "select" is a slot of QQItemSelectionModel
-    //     selection->select(
-    //       QItemSelection(
-    //         w_tblWgt->model()->index(rowIdx, 0),
-    //         w_tblWgt->model()->index(rowIdx, w_tblWgt->model()->columnCount() - 1)),
-    //       QItemSelectionModel::Select);
-
-    // If you want to select a full row, you should use the following :
-    // selection->select(idx, QItemSelectionModel::Select | QItemSelectionModel::Rows);
-  }
+#endif
 
   void BoDucReportCreator::insertHour(int rowNo, int columnNo)
 	{
@@ -769,39 +588,6 @@ namespace bdApp
 			qDebug("");
 		}
 	}
-
-#if 0 // new version
-	void BoDucReportCreator::itemSelected( QTableWidgetItem * aItem)
-	{
-		QTableWidget*  w_tblWgt = aItem->tableWidget();
-		Q_ASSERT(w_tblWgt != Q_NULLPTR);
-
-		bdAPI::BoDucFields w_field;
-		w_field.m_noCmd = w_val.toString().toStdString();
-
-		QItemSelectionModel* select = w_tblWgt->selectionModel();
-		if (select->hasSelection())
-		{
-			//return selected row
-			QModelIndexList w_mdl = select->selectedRows();
-			auto w_rowSiz = w_mdl.size();
-
-			m_currowNoSelected = aItem->row();
-			QVector<QVariant> w_cmd2Report;
-			w_cmd2Report.reserve(w_tblWgt->columnCount());
-		}
-		// just a test
-		QString w_curUnit = m_listUnite->currentText();
-		auto w_unitNo = w_curUnit.split(" ")[1]; // second is the number
-		unsigned w_No = w_unitNo.toUInt();
-		if (m_cmdUnitSaved.find(w_No) != m_cmdUnitSaved.cend())
-		{
-			std::vector<bdAPI::BoDucFields>& w_vec = m_cmdUnitSaved[w_No];
-			// need to fill vector with data
-			w_vec.push_back(bdAPI::BoDucFields());
-		}
-	}
-#endif // end of new version
 
 	void BoDucReportCreator::setupViews()
 	{
@@ -828,8 +614,8 @@ namespace bdApp
     // and slot function is call ""
 		m_tblWidget->setSelectionBehavior(QAbstractItemView::SelectRows);   // fine, select the entire row
 //		m_tblWidget->setSelectionMode(QAbstractItemView::MultiSelection); //
-    //m_tblWidget->setSelectionMode(QAbstractItemView::SingleSelection);    single selection
-		m_tblWidget->setSelectionMode(QAbstractItemView::NoSelection);    // items cannot be selected
+    m_tblWidget->setSelectionMode(QAbstractItemView::SingleSelection);    //single selection
+		//m_tblWidget->setSelectionMode(QAbstractItemView::NoSelection);     items cannot be selected
 		
     m_tblWidget->setShowGrid(true);
 		m_tblWidget->setGeometry(QRect(0, 100, 781, 281));
@@ -904,7 +690,7 @@ namespace bdApp
 // 		w_date2show->addWidget(m_dateSelect);
 
 // List of unite available
-    QLabel* w_listUniteLabl = new QLabel(tr("Unite Selectionne"));
+    QLabel* w_listUniteLabl = new QLabel( tr("Unite Selectionne"));
     QFont w_font = w_listUniteLabl->font();
     w_font.setPixelSize(17);
     w_listUniteLabl->setFont(w_font);
@@ -923,32 +709,37 @@ namespace bdApp
 		// horizontal box layout 
 		//w_buttonsBot->addLayout(w_uniteComboBox);
 
-    QLabel* w_lblsaveSelect = new QLabel( tr("Save Selection"));
+    QLabel* w_lblsaveSelect = new QLabel( tr("Saved Selection"));
  //   QVBoxLayout* w_hboxsaveSelection = new QVBoxLayout;
     w_uniteComboBox->addWidget(w_lblsaveSelect);
-    m_saveSelectBtn = new QPushButton("Save Select");
-    w_uniteComboBox->addWidget(m_saveSelectBtn);
+    QPushButton* w_saveSelectBtn = new QPushButton("Show Bon Livraison");
+    // need to connect to a slot that create a table widget
+    w_uniteComboBox->addWidget(w_saveSelectBtn);
     w_buttonsBot->addLayout(w_uniteComboBox);    // takes the ownership??
     w_buttonsBot->addSpacing(50);
 
     QLabel* w_listUniteLabl1 = new QLabel(tr("Select Unit"));
-    QComboBox* w_listUnit1 = new QComboBox;
-    w_listUnit1->addItems(m_listUniteAvailable);
-    // set the current unite that is activated as default
-    int w_uniteCurrent1 = m_listUnite->currentIndex(); // user choice
-    QString w_currUnityON = m_listUnite->itemText(w_uniteCurrent1); // be carefull with this, need to be changed
-
+//     QComboBox* w_listUnit1 = new QComboBox;
+//     w_listUnit1->addItems(m_listUniteAvailable);
+//     // set the current unite that is activated as default
+//     int w_uniteCurrent1 = m_listUnite->currentIndex(); // user choice
+//     QString w_currUnityON = m_listUnite->itemText(w_uniteCurrent1); // be carefull with this, need to be changed
+    QPushButton* w_clearBon = new QPushButton(tr("Clear Bon Livraison"));
+    //connect(w_clearBon,SIGNAL(clicked()),this,SLOT(clearCmdBon()));
+    
     QVBoxLayout* w_uniteComboBox1 = new QVBoxLayout;
     w_uniteComboBox1->addWidget(w_listUniteLabl1);
-    w_uniteComboBox1->addWidget(w_listUnit1);
+    w_uniteComboBox1->addWidget(w_clearBon);
     w_uniteComboBox1->addSpacing(10);
 
-    QLabel* w_createBonLbl = new QLabel(tr("Cree Bon Livraison"));
+    QLabel* w_createBonLbl = new QLabel( tr( "Bon Livraison"));
  //   QVBoxLayout* w_bonCreator = new QVBoxLayout;
     w_uniteComboBox1->addWidget(w_createBonLbl);
     // 		QComboBox* w_listCbox = new QComboBox;
     // 		w_listCbox->addItems(w_listUniteAvailable);
-    QPushButton* w_bonCreateReport = new QPushButton("Proceed");
+    QPushButton* w_bonCreateReport = new QPushButton("Create Report");
+    QObject::connect( w_bonCreateReport, SIGNAL(clicked()), this, SLOT(createBonLivraison()));
+
     w_uniteComboBox1->addWidget(w_bonCreateReport);
     w_buttonsBot->addLayout(w_uniteComboBox1);    // takes the ownership??
     w_buttonsBot->addSpacing(50);
@@ -970,40 +761,8 @@ namespace bdApp
 
 		QLabel* w_showLbl = new QLabel(tr("Show Selection"));
 		QVBoxLayout* w_vBox2Show = new QVBoxLayout;
-		m_showButton = new QPushButton(tr("Show"));
+		m_showButton = new QPushButton(tr("Show Command Selection"));
 		
-    // Date **************************
-//     QHBoxLayout* w_checkHBox = new QHBoxLayout;
-// 		m_date2Check = new QCheckBox;
-// 		m_date2Check->setCheckable(true);
-// 		m_date2Check->setCheckState(Qt::Unchecked);
-// 		w_checkHBox->addWidget(m_date2Check);
-// 		QLabel* w_dateHLbl = new QLabel(tr("Date"));
-// 		w_checkHBox->addWidget(w_dateHLbl);
-//     w_checkHBox->addSpacing(50);
-// 		
-// 		m_rngDate2Check = new QCheckBox;
-// 		m_rngDate2Check->setCheckable(true);
-// 		m_rngDate2Check->setCheckState(Qt::Unchecked);
-// 		w_checkHBox->addWidget(m_rngDate2Check);
-// 		QLabel* w_rngDateHLbl = new QLabel(tr("Range Date"));
-// 		w_checkHBox->addWidget(w_rngDateHLbl);
-//     w_checkHBox->addSpacing(50);
-
-// 		w_vBox2Show->addWidget(w_showLbl);
-// 		w_vBox2Show->addWidget(m_showButton);
-// 		w_vBox2Show->addLayout(w_checkHBox);
-// 		w_buttonsBot->addLayout(w_vBox2Show);
-
-// 		m_allDateCheck = new QCheckBox;
-// 		m_allDateCheck->setCheckable(true);
-// 		m_allDateCheck->setCheckState(Qt::Unchecked);
-// 		w_checkHBox->addWidget(m_allDateCheck);
-// 		QLabel* w_allDataLbl = new QLabel(tr("All date"));
-// 		w_checkHBox->addWidget(w_allDataLbl);
-//     w_checkHBox->addStretch();
-    // Date **************************
-
 		w_vBox2Show->addWidget(w_showLbl);
 		w_vBox2Show->addWidget(m_showButton);
 //		w_vBox2Show->addLayout(w_checkHBox);
@@ -1011,7 +770,7 @@ namespace bdApp
 
 		QLabel* w_clearLbl = new QLabel(tr("Clear Selection"));
 //		QVBoxLayout* w_clearSelect = new QVBoxLayout;
-		m_clearButton = new QPushButton(tr("Clear"));
+		m_clearButton = new QPushButton(tr("Clear Command Selection"));
     w_vBox2Show->addWidget(w_clearLbl);
     w_vBox2Show->addWidget(m_clearButton);
 		w_buttonsBot->addLayout(w_vBox2Show);
@@ -1139,187 +898,21 @@ namespace bdApp
     return w_cmdBox;
 	}
 
-#if 0
-  void BoDucReportCreator::loadPdfFiles()
-  {
-    // setting default directory to start with 
-    // i need to check, which is the root directory of the VS15 project
- //   QString w_defaultDir = QDir::currentPath();
-
-    // now opening file to be processed (name of the file returned)
-    m_filesName = QFileDialog::getOpenFileNames(this, tr("Open File"),
-      m_defaultDir,
-      tr("Text (*.txt *.csv *.pdf)"));
-
-    // parse file to extract command
-    bdAPI::BoDucParser w_fileParser(bdAPI::BoDucParser::eFileType::pdf);
-
-//     QMessageBox msgError;
-//     msgError.setText("CRITICAL ERROR!\nThe McRib is no longer available!");
-//     msgError.setIcon(QMessageBox::Critical);
-//     msgError.setWindowTitle("Danger");
-//     msgError.exec();
-
-    // check for supported file extension
-    if( !w_fileParser.isFileExtOk(m_filesName)) {
-      QMessageBox::StandardButton reply;
-      reply = QMessageBox::warning( this, "Wrong file extension selected", "Need to select pdf file?",
-        QMessageBox::Yes | QMessageBox::No);
-      if (reply == QMessageBox::Yes) {
-        m_filesName = QFileDialog::getOpenFileNames(this, tr("Open File"),
-          m_defaultDir,
-          tr("Text (*.txt *.csv *.pdf)"));
-      }
-      else { // user doesn't want to continue
-        //	qDebug() << "Yes was *not* clicked";
-        QApplication::quit();
-      }
-    }
-
-    // convert pdf to txt format (swap pdf to txt)
-    // Design Note: add a test to check if conversion succeed?
-    // return a bool ? true : false or the list of converted files (QStringList)
-    // need to call setQProcessEnv()
-    QProcessEnvironment w_procEnv = QProcessEnvironment::systemEnvironment();
-    w_procEnv.insert( "PYTHONPATH", "C:\\Python27\\Lib");
-    w_procEnv.insert( "PYTHONHOME", "C:\\Python27");
-
-    // convert pdf to txt format
-    QStringList w_filesConverted = 
-      bdAPI::BoDucUtility::convertPdf2Txt( m_filesName, g_pythonScript, w_procEnv, this);
-
-    //QFile::remove();
-    // move file to different folder
-//     file.rename( g_pdfilesPath+"/"+ QString("DataValidation")+ "/" +fileInfo.fileName());
-//     auto complPath = fileInfo.absoluteFilePath();
-//     QDir w_wrkDir(g_pdfilesPath);
-//     QFileInfo w_finfo(*w_begList);
-//     auto fileName = w_finfo.fileName();
-//     QFile w_file( w_wrkDir.absolutePath() + "/" + fileName);
-//     QFileInfo w_checkWholePath(w_file);
-//     auto fileCheck = w_checkWholePath.absoluteFilePath();
-
-//     while (w_begList != w_endList)
-//     {
-//       //  std::cout << "Loading the following files: " << w_begList->toStdString() << std::endl;
-//       w_listFilesName.push_back( w_begList->toStdString());
-//       ++w_begList;
-//     }
-
-    // read files (...) and return list of files (text format) 
-    auto w_vecofCmd = bdAPI::BoDucCmdFileReader::readFiles( w_filesConverted);
-
-#if _DEBUG
-    // deleting txt file (these are temporaries, so might as well to delete it)
-    QStringListIterator w_listConvertFilesIter(w_filesConverted);
-    while( w_listConvertFilesIter.hasNext())
-    {
-      QFile file(w_listConvertFilesIter.next());
-      QFileInfo fileInfo(file);
-      if( QFile::remove( fileInfo.absoluteFilePath()))
-      {
-        // we definitively need a log file
-        std::cout << "Could not remove file from location\n";
-      }
-    }
-#endif // 
-
-    // debugging purpose
-    std::vector<bdAPI::BoDucFields> w_reportCmd;
-
-    // This represent command extracted from files selected by user.
-    // Each file is a map of vector of string (text rep of a command)
-    // ready to parse all command and save it to data store
-    // list of all files selected by user, check for each command in a file
-    for( auto begVecMap = w_vecofCmd.cbegin(); begVecMap != w_vecofCmd.cend(); ++begVecMap)
-    {
-      // Initialize first command for this file
-      // this map represent a file with all the commands  
-      std::map<int, std::vector<std::string>>::const_iterator w_cmdFileBeg = begVecMap->cbegin();
-
-      // go through all command in this file (map(int,vecstr))
-      while( w_cmdFileBeg != (*begVecMap).cend())
-      {
-        // list of commands for a given file 
-        std::vector<std::string> w_checkCmd = (*w_cmdFileBeg).second;
-
-        // check for some blank lines when converting from pdf to text
-        if (std::any_of(w_checkCmd.cbegin(), w_checkCmd.cend(), [](const std::string& aStr) { return aStr.empty(); }))
-        {
-          w_checkCmd.erase(std::remove_if(w_checkCmd.begin(), w_checkCmd.end(), // delete empty element
-            [](const std::string& s) // check if an empty string
-          {
-            return s.empty();
-          }), w_checkCmd.cend());
-        }
-
-        // maybe merge those 2 if
-        if (!w_fileParser.hasAnyTM_TON(w_checkCmd))
-        {
-          ++w_cmdFileBeg; // ready for next command
-          continue;
-        }
-
-        // Need to check for tonnage tags: "TM" or "TON"
-        //         if( !w_fileParser.isTransporteurNameValid(w_checkCmd, w_lisTransporteur))
-        //         {
-        //           ++w_cmdFileBeg; // ready for next command
-        //           continue;
-        //         }
-
-        // use the std any algorithm (with a lambda as the predicate to find
-        //if any of those are present in files) 
-        auto bdField = w_fileParser.extractData(w_checkCmd);
-        w_reportCmd.push_back(bdField);
-        ++w_cmdFileBeg; // ready for next command 
-      }//while-loop
-    }//for-loop
-
-     // ready to save to data store
-     //bdApp::FileDataStore w_dataStore; 
-     //QFile w_reportFile( QString( "commandReport.txt"));
-    bdAPI::BoDucBaseReport w_tmpFile(m_reportFile);
-
-    // write to report file
-    w_tmpFile.createReport(w_reportCmd);
-
-    // Since we have changed the file data store, we need to reload it
-    // clear cache memory before the re-load and then reload the whole file
-    // update file database (load the whole file in memory)
-    if( !m_vectorOfCmd.empty())
-    {
-      m_vectorOfCmd.clear(); //empty last cmds
-    }
-
-    // update command vector (db has been updated signal)
-    // since new command has been added in file data store we have to reload  
-    QFileInfo w_reportFileInfo(m_reportFolder, m_reportFile.fileName());
-    m_vectorOfCmd = bdAPI::BoDucUtility::loadCmdReportInVector( w_reportFileInfo.filePath());
-  }
-#endif
-
   // deprecated
   void BoDucReportCreator::createConnections()
 	{
-		QObject::connect( m_bonCreateReport, SIGNAL(clicked()),                      this, SLOT(createBonLivraison())); // deprecated
-//		QObject::connect( m_listUnite,       SIGNAL(activated(int)),                 this, SLOT(currentUniteON()));
-		//QObject::connect( m_saveSelectBtn,   SIGNAL(clicked()),                      this, SLOT(savetest())); deprecated
-		QObject::connect(m_saveSelectBtn,    SIGNAL(clicked()),                      this, SLOT(saveCmdSelection()));
-//		QObject::connect( m_cptySelectBtn,   SIGNAL(clicked()),                      this, SLOT(setMode()));
-		QObject::connect( m_tblWidget,       SIGNAL(itemClicked(QTableWidgetItem*)), this, SLOT(testItemClick(QTableWidgetItem*)));
-//		QObject::connect( m_tblWidget,       SIGNAL(cellChanged(int,int)),           this, SLOT(insertHour(int,int)));
+    QObject::connect(m_tblWidget,        SIGNAL(itemClicked(QTableWidgetItem*)),        this, SLOT(saveUserSelection(QTableWidgetItem*)));
+    //		QObject::connect( m_tblWidget,       SIGNAL(cellChanged(int,int)),           this, SLOT(insertHour(int,int)));
 		QObject::connect( m_showButton,      SIGNAL(clicked()),                      this, SLOT(showCmd()));
 //		QObject::connect( m_clearButton,     SIGNAL(clicked()),                      this, SLOT(clearContents()));
-		QObject::connect( m_clearButton,      SIGNAL(clicked()),                     this, SLOT(clearDispalyedCmd()));
-//		QObject::connect(m_clearButton,      SIGNAL(clicked()),                      this, SLOT(removeRow(int)));
-//		QObject::connect( m_allDateCheck,     SIGNAL(stateChanged()),                this, SLOT(allDateChecked())); // deprecated
+		QObject::connect( m_clearButton,     SIGNAL(clicked()),                     this, SLOT(clearDispalyedCmd()));
 	}
 
 	void bdApp::BoDucReportCreator::setUnitCapacityLoad()
 	{
     auto w_pbarUnitMapBeg = m_unitPbar.cbegin();
     auto w_pbarUnitMapEnd = m_unitPbar.cend();
-    while (w_pbarUnitMapBeg != w_pbarUnitMapEnd)
+    while( w_pbarUnitMapBeg != w_pbarUnitMapEnd)
     {
       if (!w_pbarUnitMapBeg->second->isEnabled())
       {
@@ -1361,36 +954,44 @@ namespace bdApp
 			m_tblWidget->setRowCount(0); // set everything to zero
 		}                              
 
-			QDate w_minDate = m_dateMinSelected->date();
-			QString w_fmtMinDate = w_minDate.toString(QString("yyyyMMdd"));
-			QDate w_maxDate = m_dateMaxSelected->date();
-			QString w_fmtMaxDate = w_maxDate.toString(QString("yyyyMMdd"));
+    QDate w_minDate = m_dateMinSelected->date();
+    QString w_fmtMinDate = w_minDate.toString(QString("yyyyMMdd"));
+    QDate w_maxDate = m_dateMaxSelected->date();
+    QString w_fmtMaxDate = w_maxDate.toString(QString("yyyyMMdd"));
 
-			// now select only those that satisfied the selected date
-			for( const auto& val : bdAPI::BoDucUtility::remDuplicateAndSort(m_vectorOfCmd) /*m_vectorOfCmd*/)
-			{
-				std::string w_cpyDate = boost::replace_all_copy(val.m_datePromise, R"(/)", "");
+    // now select only those that satisfied the selected date
+    for( const auto& val : bdAPI::BoDucUtility::remDuplicateAndSort(m_vectorOfCmd) /*m_vectorOfCmd*/)
+    {
+      std::string w_cpyDate = boost::replace_all_copy(val.m_datePromise, R"(/)", "");
 
-				// loop on the cmd vector
-				if( QString(w_cpyDate.c_str()) >= w_fmtMinDate && QString(w_cpyDate.c_str()) <= w_fmtMaxDate)
-				{
-					m_vecOfCmd2Display.push_back(val);
-				}
-			}
-      fillTableWidget2Display();
+      // loop on the cmd vector
+      if( QString(w_cpyDate.c_str()) >= w_fmtMinDate && QString(w_cpyDate.c_str()) <= w_fmtMaxDate)
+      {
+        m_vecOfCmd2Display.push_back(val);
+      }
+    }
+    fillTableWidget2Display();
 	}
 
   void BoDucReportCreator::setReportFolder()
   {
+    // not sure how it will be set?? think about it 
+    // QDir::setCurrent(myPath); set by user??
     QString w_pathNow = QDir::current().absolutePath();
     m_reportFolder.setPath(w_pathNow);
+
+#if 0 // just for debugging purpose
+    QMessageBox msgBox;
+    msgBox.setText(w_pathNow);
+    msgBox.exec();
+#endif
     
     // looking for report folder (file database) 
-    while (!m_reportFolder.exists( QString("ReportFiles")))
+    while( !m_reportFolder.exists( QString("ReportFiles")))
     {
       m_reportFolder.cdUp();
     }
-    m_reportFolder.cd(QString("ReportFiles"));
+    m_reportFolder.cd( QString("ReportFiles"));
   }
 
   // clear all cmd in the display window

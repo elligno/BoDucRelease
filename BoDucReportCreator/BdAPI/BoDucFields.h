@@ -24,7 +24,7 @@ namespace bdAPI
     // not sure yet, i come back later with more details
     BoDucFields( const BoDucFields& aOther) = default;
     BoDucFields& operator= (const BoDucFields& aOther) = default;
-		//move semantic
+		//move semantic, no don't need that!!! just pass a reference, that's it!!
 		BoDucFields( bdTpl&& aTpl);
     ~BoDucFields() = default;
 

@@ -187,6 +187,16 @@ namespace bdAPI
         }
         else
         {
+          // last check because for some file "TON" is moved somewhere at the end of the file
+          // let's check if this the case here
+          auto foundTON = std::find_if(findUM, aCmdText.cend(), [](const std::string& aStr2Find)
+          {
+            return boost::contains(aStr2Find, std::string("TON"));
+          });
+          if( foundTON != aCmdText.cend())
+          {
+            return true;
+          }
           return false;
         }
       }
