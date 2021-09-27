@@ -10,7 +10,7 @@
 // App. includes
 #include "BdAPI/BoDucFields.h"
 //#include "BdAPI/BoDucApp.h"
-#include "BdAPI/BoDucParser.h"
+//#include "BdAPI/BoDucParser.h"
 #include "BdAPI/BoDucBonLivraison.h"
 
 // forward declaration

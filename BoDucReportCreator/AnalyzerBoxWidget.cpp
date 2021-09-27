@@ -9,15 +9,16 @@
 #include <QFileDialog>
 #include <QMessageBox>
 // Widget includes
-#include "BdAPI/BoDucCmdText.h"
+#include "bdAPI/BoDucCmdText.h"
 #include "bdAPI/BoDucUtility.h"
 #include "bdAPI/BoDucCmdFileReader.h"
 #include "AnalyzerBoxWidget.h"
+#include "BdAPI/BoDucParser.h"
 
 // internal linkage
-namespace { // this is a temporary fix, will replaced by an environment variable
-  const QString g_pythonScript = R"(F:\EllignoContract\BoDuc\pdfminerTxt\pdfminer-20140328\build\scripts-2.7\pdf2txt.py)";
-} // End of namespace
+// namespace { // this is a temporary fix, will replaced by an environment variable
+//   const QString g_pythonScript = R"(F:\EllignoContract\BoDuc\pdfminerTxt\pdfminer-20140328\build\scripts-2.7\pdf2txt.py)";
+// } // End of namespace
 
 AnalyzerBoxWidget::AnalyzerBoxWidget( QWidget* parent /*= Q_NULLPTR*/) 
 : QWidget(parent)
@@ -258,9 +259,44 @@ void AnalyzerBoxWidget::loadPdfFiles()
 //   w_procEnv.insert("PYTHONHOME", "C:\\Python27");
 //   w_procEnv.insert("PYTHONPATH", "C:\\Python27\\Lib");
 
+  // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  // PDFMNR_ROOT env variable
+  char* w_pdfMnrVar = nullptr;
+  size_t w_requiredSize;
+
+  // check if it exist, return number of elements if true
+  ::getenv_s(&w_requiredSize, nullptr, 0, "PDFMNR_ROOT");
+  if( w_requiredSize == 0)
+  {
+    printf("PDFMNR_ROOT doesn't exist!\n");
+    QMessageBox msgBox;
+    msgBox.setText("PYTHON environment (BDPY27_ROOT) variable not set.");
+    msgBox.exec();
+    // exit(1);
+  }
+
+  // since it exist, allocate resource to retrieve it
+  w_pdfMnrVar = (char*)malloc(w_requiredSize * sizeof(char));
+  if (!w_pdfMnrVar)
+  {
+    // Should be put in a log file
+    printf("Failed to allocate memory!\n");
+    exit(1);
+  }
+
+  // Get the value of the "BDPY27_ROOT" environment variable
+  getenv_s(&w_requiredSize, w_pdfMnrVar, w_requiredSize, "PDFMNR_ROOT");
+  // shall be put in a log file 
+  printf("Original PDFMNR_ROOT variable is: %s\n", w_pdfMnrVar);
+  char w_pdfmnrScript[100];  //concatenated string
+  errno_t w_ret = ::strcpy_s(w_pdfmnrScript, 100, w_pdfMnrVar);
+  w_ret = ::strcat_s(w_pdfmnrScript, 100, "build\\scripts-2.7\\pdf2txt.py");
+  // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
   // convert pdf to txt format
   QStringList w_filesConverted =
-    bdAPI::BoDucUtility::convertPdf2Txt(w_filesName, g_pythonScript, w_procEnv, this);
+    bdAPI::BoDucUtility::convertPdf2Txt(w_filesName, w_pdfmnrScript, w_procEnv, this);
+    //bdAPI::BoDucUtility::convertPdf2Txt(w_filesName, g_pythonScript, w_procEnv, this);
 
   //QFile::remove();
   // move file to different folder

@@ -298,7 +298,8 @@ namespace bdAPI
     bool add( const BoDucCmdText& aCmdTxt) 
     { 
       ++m_nbCmd; 
-      return false; } // debugging purpose
+      return false; 
+    } // debugging purpose
 
     // move semantic avoid copying large amount of data without creating temporary
     void add( BoDucCmdText&& aCmdTxt)  

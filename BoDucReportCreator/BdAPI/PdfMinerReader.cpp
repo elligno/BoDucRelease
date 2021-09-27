@@ -80,9 +80,23 @@ namespace bdAPI
     auto begVec = aProdescrArea.begin();
 
     // retrieve product code (always 1 line below rhe string "prod et descr")
-    auto w_begPos = std::next( begVec + 1); // tmp for debug purpose
-    std::string w_prodCode = *std::next(begVec + 1);
-    aBoDucField.m_prodCode = static_cast<signed long>( ::atoi( w_prodCode.c_str()));
+    auto w_begPos = std::next( begVec,1);  //tmp for debug purpose
+    std::string w_tst = std::string(*w_begPos);
+    boost::trim_left(w_tst);
+
+    if( w_tst == "1")
+    {
+      std::string w_prodCode = *std::next(begVec,2);
+      aBoDucField.m_prodCode = static_cast<signed long>(::atoi(w_prodCode.c_str()));
+    }
+    else
+    {
+      w_begPos -= 1;
+      aBoDucField.m_prodCode = static_cast<signed long>(::atoi((*w_begPos).c_str()));
+    }
+
+ //   std::string w_prodCode = *std::next(begVec + 1);
+ //   aBoDucField.m_prodCode = static_cast<signed long>( ::atoi( w_prodCode.c_str()));
 
     // start to analyze the area to find proper algorithm
     BoDucProDescrAnalyzer w_proDescrAnalyzer;

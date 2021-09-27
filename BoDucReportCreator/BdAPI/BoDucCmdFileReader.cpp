@@ -51,7 +51,7 @@ namespace bdAPI {
   BoDucCmdFileReader::vecmapstr BoDucCmdFileReader::readFiles( const QStringList& aFilesNameWithPath,
     const std::string& aSplitCmdToken /*= std::string("Signature")*/)
   {
-    // multiple files selection support
+    // multiple files selection supports
     std::vector<mapIntVecstr> w_vecOfMap; 
     QStringListIterator w_filesIter(aFilesNameWithPath);
     while( w_filesIter.hasNext())
@@ -61,10 +61,12 @@ namespace bdAPI {
         readFile( w_file2Proceed.toStdString(), aSplitCmdToken /*std::string("Signature")*/);
 
       // cannot bind a lvalue to rvalue (w_mapintVec)???
+      // NOTE we use the push_back rvalue version by casting 
+      // lvalue to rvalue reference 
       w_vecOfMap.push_back( std::move(w_mapintVec)); 
 
       // sanity check (according to the move semantic)
-      assert(0 == w_mapintVec.size()); 
+      assert( 0 == w_mapintVec.size()); 
     }
 
 #if 0

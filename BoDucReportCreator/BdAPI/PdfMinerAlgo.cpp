@@ -181,8 +181,27 @@ namespace bdAPI
 				}
 				++begVec;
 	//			++vecPos;
-			}
+			}//while-loop
 //		}
+
+      if (aBoDucField.m_produit.empty())
+      {
+        // must scan again
+        begVec = w_foundCmdNo;
+        while (begVec != aCmdVec.cend())
+        {
+          const std::string& str2look = *begVec; // get line as string
+          if( contains(str2look, "produit et description")) // check for keyword
+          {
+     //       if (::strcmp("produit et description", w_keyWordIter->c_str()) == 0)
+      //      {
+              BoDucProDescrArea w_prodescrArea(std::vector<std::string>(begVec, begVec + 10));
+              w_boducReader->readProdDescr(w_prodescrArea, aBoDucField);
+              break; // we are at the end of tokens list
+          }//if
+          ++begVec;
+        }//while-loop
+      }
 	}
 
 #if 0

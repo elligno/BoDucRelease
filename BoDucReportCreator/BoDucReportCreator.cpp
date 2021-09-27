@@ -25,8 +25,9 @@
 #include <QFont>
 #include <QCheckBox>
 #include <QProxyStyle>
-// Boost include
+// Boost includes
 #include <boost/range/adaptors.hpp>
+#include <boost/algorithm/string.hpp> // string algorithm
 // Application Widget includes
 #include "AnalyzerBoxWidget.h"
 // Application includes
@@ -612,9 +613,14 @@ namespace bdApp
     // selection behavior and mode determine how user selection is manage.
     // not sure yet, but once user have selected an item, press button "save selection"
     // and slot function is call ""
-		m_tblWidget->setSelectionBehavior(QAbstractItemView::SelectRows);   // fine, select the entire row
-//		m_tblWidget->setSelectionMode(QAbstractItemView::MultiSelection); //
-    m_tblWidget->setSelectionMode(QAbstractItemView::SingleSelection);    //single selection
+    // These set methods allow the creation of the QModelIndex, how Qt store data.
+    // In our case, since we have the selection row and single, it means model index 
+    // is i = row and 0,...,8 = 9 columns
+    // TableWidget (View) returns the selection model which in turn hold how data is managed.
+    // This is done by the QModelIndex
+		m_tblWidget->setSelectionBehavior( QAbstractItemView::SelectRows);   // fine, select the entire row
+//		m_tblWidget->setSelectionMode(QAbstractItemView::MultiSelection);  
+    m_tblWidget->setSelectionMode( QAbstractItemView::SingleSelection);  //single selection
 		//m_tblWidget->setSelectionMode(QAbstractItemView::NoSelection);     items cannot be selected
 		
     m_tblWidget->setShowGrid(true);
@@ -641,7 +647,7 @@ namespace bdApp
       QTableWidgetItem* myTableWidgetItem = Q_NULLPTR;
       for (auto j = 0; j < m_tblWidget->columnCount(); ++j)
       {
-        myTableWidgetItem = new QTableWidgetItem;     // i am not sure about this one
+        myTableWidgetItem = new QTableWidgetItem;     
         // case  j==0, user check box in the first column
         if (j == 0)
         {
@@ -660,6 +666,9 @@ namespace bdApp
         }
         //myTableWidgetItem->data(Qt::CheckStateRole);   
         myTableWidgetItem->setData(Qt::DisplayRole, w_vecVariant[j - 2]);
+
+        // According to Qt documentation of QTableWidget
+        // table takes ownership of the item (responsible for its deletion).
         m_tblWidget->setItem(i, j, myTableWidgetItem);
       }
       ++i;
