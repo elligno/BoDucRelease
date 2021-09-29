@@ -49,6 +49,9 @@ namespace bdAPI
 		std::cout << "Reading the following file: " << m_workDir + m_fileName << "\n";
 	}
 
+#if 0
+  // this is deprecated, not in use anymore
+  // will be refactored in the next major release
 	void BoDucApp::process()
 	{
 		using namespace std;
@@ -102,7 +105,7 @@ namespace bdAPI
 		// TODO: Design Note
 		// shall be call outside the if-else to avoid to copy over and over
 		// only to do it once, algorithm instance takes care of pilling up
-		w_bonLivraison->getBoDucStruct(m_reportData);
+//		w_bonLivraison->getBoDucStruct(m_reportData);
 
 		// new version (copy vector)
 		//m_reportData = w_boducParseAlgo.getBdFields();
@@ -114,6 +117,7 @@ namespace bdAPI
 			m_vecOfMap.clear();
 		}
 	}
+#endif
 
 	void BoDucApp::readFile( const std::string& aFileAnPath, const std::string& aSplitBill)
 	{
@@ -125,7 +129,7 @@ namespace bdAPI
 		using vecofstr = std::vector<std::string>;
 		
 		// lambda (anonymous) function declaration
-		auto checkTransportName = [](const std::string& aStr2Look) -> bool
+		auto checkTransportName = [] (const std::string& aStr2Look) -> bool
 		{
 			// Transporteur name (BoDuc)
 			return (contains(aStr2Look, "NIR R-117971-3 TRSP CPB INC")

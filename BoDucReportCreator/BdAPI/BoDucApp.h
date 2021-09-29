@@ -13,6 +13,7 @@
 namespace bdAPI { class BoDucBonLivraisonAlgorithm; }
 namespace bdAPI 
 {
+  // deprecated, it has been refactored
 	class BoDucApp 
 	{
 	public:
@@ -41,7 +42,7 @@ namespace bdAPI
 		}
 		const std::string& getWorkingDir() const { return m_workDir; }
 		void saveFile( const std::string& aFile2Save) {/*not implemented yet*/}
-		void countNbCmd();
+//		void countNbCmd();
 		void setNbSelectedFiles(unsigned short aNbFilesSelectd) { m_userSelectF = aNbFilesSelectd; }
 		unsigned short getNbSelectedFiles() const { return m_userSelectF; }
 		void setPrintOut() {/*not implemented yet*/ }
@@ -60,7 +61,7 @@ namespace bdAPI
 		{ return std::vector<BoDucFields>(m_reportData.cbegin(),m_reportData.cend()); }
 
     // return the number of command to process
-		virtual void process();
+	//	virtual void process();
 		
 		// parse and fill data structure 
 		virtual void readFile( const std::string& aFileAnPath,

@@ -8,6 +8,8 @@
 #include <vector>
 // Boost includes
 #include <boost/operators.hpp>
+// Qt include
+#include <QString>
 
 namespace bdAPI
 {
@@ -19,8 +21,12 @@ namespace bdAPI
 		
 		// default ctor
 		BoDucFields();
-		//move semantic
+    // not sure yet, i come back later with more details
+    BoDucFields( const BoDucFields& aOther) = default;
+    BoDucFields& operator= (const BoDucFields& aOther) = default;
+		//move semantic, no don't need that!!! just pass a reference, that's it!!
 		BoDucFields( bdTpl&& aTpl);
+    ~BoDucFields() = default;
 
 		friend bool operator== (const BoDucFields& aField1, const BoDucFields& aField2)
 		{
@@ -38,6 +44,14 @@ namespace bdAPI
 			return stream;
 		}
 
+    // QString converter to handle utf-8 character
+    QString noCmd()       const { return QString(m_noCmd.data());       }
+    QString deliverTo()   const { return QString(m_deliverTo.data());   }
+    QString datePromise() const { return QString(m_datePromise.data()); }
+    QString produit()     const { return QString(m_produit.data());     }
+    QString silo()        const { return QString(m_silo.data());        }
+    float   qty()         const { return m_qty; }
+
 		std::string m_noCmd;
 		std::string m_deliverTo;
 		std::string m_datePromise;
@@ -46,5 +60,6 @@ namespace bdAPI
 		float m_qty; // better to set as a string
 		//not always an integer (can be 2&3, 4-A and a string such as "Un seul silo")
 		std::string m_silo;
+    bdTpl m_bdTpl;
 	};
 } // End of namespace

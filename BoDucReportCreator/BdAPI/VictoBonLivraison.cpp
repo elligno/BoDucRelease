@@ -18,22 +18,22 @@
 #include "VictoBonLivraison.h"
 //#include "Refactoring/TestAddressParserImpl.h"
 
-bdAPI::VictoBonLivraison::VictoBonLivraison()
-: m_fieldKey({ "No Command","Shipped to","Date promise","produit et description" })
-{
-	m_vecOfStruct.reserve(1000); // hard code for now
-}
+//bdAPI::VictoBonLivraison::VictoBonLivraison()
+// : m_fieldKey({ "No Command","Shipped to","Date promise","produit et description" })
+// {
+// 	m_vecOfStruct.reserve(1000); // hard code for now
+// }
 
-bdAPI::VictoBonLivraison::~VictoBonLivraison()
-{
-	std::cout << "Nothing to do\n";
+//bdAPI::VictoBonLivraison::~VictoBonLivraison()
+//{
+//	std::cout << "Nothing to do\n";
 	// maybe clear vector, but i think it's done automatically 
 	// at the end of lifecycle of this object
-	if (!m_vecOfStruct.empty())
-	{
-		m_vecOfStruct.clear(); // size=0
-	}
-}
+// 	if (!m_vecOfStruct.empty())
+// 	{
+// 		m_vecOfStruct.clear(); // size=0
+// 	}
+//}
 
 // Receive the BoDuc command in a vector of string which represent
 // each line of the order form (converted from pdf to csv)
@@ -208,6 +208,8 @@ void bdAPI::VictoBonLivraison::fillBoDucFields( const std::vector<std::string>& 
 	}//for-loop
 }
 
+#if 0
+
 void bdAPI::VictoBonLivraison::addBoDucField(const BoDucFields & aField2Add)
 {
 	m_vecOfStruct.push_back(aField2Add);
@@ -239,3 +241,4 @@ void bdAPI::VictoBonLivraison::getBoDucStruct( std::vector<BoDucFields>& aVec2Fi
 //	std::vector<BoDucFields>::size_type w_siz = m_vecOfStruct.size(); // victo = 15
   //std::copy( m_vecOfStruct.cbegin(), m_vecOfStruct.cend(), aVec2Fill.begin());
 }
+#endif

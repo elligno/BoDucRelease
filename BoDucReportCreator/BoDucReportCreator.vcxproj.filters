@@ -71,11 +71,23 @@
     <ClCompile Include="BdAPI\PdfMinerReader.cpp">
       <Filter>BoDucAPI Files</Filter>
     </ClCompile>
-    <ClCompile Include="GeneratedFiles\Release\moc_BoDucReportCreator.cpp">
-      <Filter>Generated Files\Release</Filter>
+    <ClCompile Include="BdAPI\BoDucCmdFileReader.cpp">
+      <Filter>BoDucAPI Files</Filter>
     </ClCompile>
-    <ClCompile Include="GeneratedFiles\Debug\moc_BoDucReportCreator.cpp">
-      <Filter>Generated Files\Debug</Filter>
+    <ClCompile Include="BdAPI\BoDucBaseReport.cpp">
+      <Filter>BoDucAPI Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AnalyzerBoxWidget.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ProgressUnitBoxWidget.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BdAPI\BoDucBonLivraison.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BdAPI\BoDucBonLivraisonReport.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -129,10 +141,49 @@
     <ClInclude Include="GeneratedFiles\ui_BoDucReportCreator.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
+    <ClInclude Include="BdAPI\BoDucCmdFileReader.h">
+      <Filter>BoDucAPI Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BdAPI\BoDucCmdText.h">
+      <Filter>BoDucAPI Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BdAPI\BoDucBaseReport.h">
+      <Filter>BoDucAPI Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BdAPI\BoDucBonLivraison.h">
+      <Filter>BoDucAPI Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BdAPI\BoDucFilePaser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BdAPI\BoDucLineParser.h">
+      <Filter>BoDucAPI Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BdAPI\BoDucCmdDataExtractor.h">
+      <Filter>BoDucAPI Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BdAPI\BoDucFileDataStore.h">
+      <Filter>BoDucAPI Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BdAPI\BoDucBonLivraisonReport.h">
+      <Filter>BoDucAPI Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BdAPI\BoDucProDescrAnalyzer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BdAPI\BoDucProDescrAnalyzer.hpp">
+      <Filter>BoDucAPI Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="BoDucReportCreator.h">
+    <QtMoc Include="BoDucReportCreator.h">
       <Filter>Header Files</Filter>
-    </CustomBuild>
+    </QtMoc>
+    <QtMoc Include="AnalyzerBoxWidget.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="ProgressUnitBoxWidget.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
   </ItemGroup>
 </Project>
