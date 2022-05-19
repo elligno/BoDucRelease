@@ -110,7 +110,8 @@ QGroupBox* AnalyzerBoxWidget::createAnalyzerBox()
   w_rowLayout->addWidget(w_loadPdfButton); // see comment above
   w_rowLayout->addSpacing(70);
   // connect signal/slot message
-  connect(w_loadPdfButton, SIGNAL(clicked()), this, SLOT(loadPdfFiles()));
+//  connect( w_loadPdfButton, SIGNAL(clicked()), this, SLOT(loadPdfFiles())); //for debugging purpose 
+  connect(w_loadPdfButton, SIGNAL(clicked()), this, SLOT(loadRPdfFiles()));  //R pdf tools library
 
   // load type(normal/degel) 
   QPushButton* w_capacitySelectButton = new QPushButton("Normal Load");
@@ -400,6 +401,174 @@ void AnalyzerBoxWidget::loadPdfFiles()
   emit commandLoaded();
 }
 
+// testing a prototype (first version )
+void AnalyzerBoxWidget::loadRPdfFiles()
+{
+  using namespace bdAPI;
+
+  // now opening file to be processed (name of the file returned)
+  QStringList w_filesName = QFileDialog::getOpenFileNames(this, tr("Open File"),
+    QDir::currentPath(),
+    tr("Text (*.txt *.csv *.pdf)"));
+
+  // debugging purpose
+  std::vector<bdAPI::QBoDucFields> w_reportCmd;
+
+  QStringListIterator w_listCmdFiles{w_filesName};
+  while( w_listCmdFiles.hasNext())
+  {
+    QFile w_currCmdFile{w_listCmdFiles.next()};
+    // File that contains 1 or more command to proceed (data to extract)
+    BoDucFileListCmdTxt w_listFileCmdText = BoDucCmdFileReader::readFile(w_currCmdFile);
+    // sanity check
+    const auto w_nbCmdThisFile = w_listFileCmdText.nbOfCmd();
+    const auto w_nameCmdFile = w_listFileCmdText.filename();
+    // retrieve first command of the file (debugging purpose, don't need to do that)
+    const auto w_firstCmdTxt = w_listFileCmdText.first();
+    if( w_firstCmdTxt.isEmpty()) // && w_firstCmdTxt.hasTransporteurNameValid(glisTransporteur)
+    {
+      continue;
+    }
+
+    // debugging purpose
+    std::vector<bdAPI::QBoDucFields> w_reportCmd;
+    QVectorIterator<BoDucCmdText> w_iterCmdTxt = w_listFileCmdText.getIterator();
+    while( w_iterCmdTxt.hasNext())
+    {
+      // Parse file to extract command data
+      bdAPI::BoDucParser w_fileParser( bdAPI::BoDucParser::eFileType::rcsv);
+      auto w_bdField = w_fileParser.extractData( w_iterCmdTxt.next());
+      w_reportCmd.push_back(w_bdField);
+    }
+   }//while-loop
+
+    // notify that new commands has been loaded 
+  emit commandLoaded();
+}
+
+void AnalyzerBoxWidget::loadRPdfFiles_proto()
+{
+  // now opening file to be processed (name of the file returned)
+  QStringList w_filesName = QFileDialog::getOpenFileNames(this, tr("Open File"),
+    QDir::currentPath(),
+    tr("Text (*.txt *.csv *.pdf)"));
+
+  // then extract info with "getenv_s(...)" 
+  // at installation user have to set this variable
+  char* w_renvVar = nullptr;
+  size_t requiredSize;
+
+  // check if it exist, return number of elements if true
+  ::getenv_s( &requiredSize, nullptr, 0, "R_HOME");
+  if( requiredSize == 0)
+  {
+    ::printf("R_HOME doesn't exist!\n");
+    QMessageBox msgBox;
+    msgBox.setText("R environment (R_HOME) variable not set.");
+    msgBox.exec();
+    // exit(1);
+  }
+
+  // since it exist, allocate resource to retrieve it
+  w_renvVar = (char*)malloc(requiredSize * sizeof(char));
+  if (!w_renvVar)
+  {
+    // Should be put in a log file
+    ::printf("Failed to allocate memory!\n");
+    exit(EXIT_FAILURE);
+  }
+
+  // Get the value of the "BDPY27_ROOT" environment variable
+  ::getenv_s( &requiredSize, w_renvVar, requiredSize, "R_HOME");
+  // shall be put in a log file 
+  ::printf( "Original R_HOME variable is: %s\n", w_renvVar);
+
+  // BoDuc environment variable for pdf support
+  // library path is also required
+  char w_rscriptPath[100];  //concatenated string
+  errno_t ret = ::strcpy_s( w_rscriptPath, 100, w_renvVar);
+  if( ret != 0)
+  {
+    // could proceed anymore
+    ::printf("Couldn't copy in memory!\n");
+  }
+  ret = ::strcat_s( w_rscriptPath, 100, "\\bin\\x64\\Rscript.exe");
+  if( ret != 0)
+  {
+    ::printf( "Couldn't set R lib path: %s\n", w_renvVar);
+  }
+
+  char* w_rextrtcVar = nullptr;
+  size_t w_requiredSize;
+  char w_rpdfExtractScript[100];  //concatenated string
+  
+  // Get the value of the "BDPY27_ROOT" environment variable
+  ::getenv_s( &w_requiredSize, nullptr, 0,"BDR_ROOT");
+  w_rextrtcVar = (char*)malloc(requiredSize * sizeof(char));
+  // Get the value of the "BDPY27_ROOT" environment variable
+  ::getenv_s(&w_requiredSize, w_rextrtcVar, w_requiredSize, "BDR_ROOT");
+  // shall be put in a log file 
+  ::printf("Original R_HOME variable is: %s\n", w_rextrtcVar);
+  // shall be put in a log file 
+  ::printf("Original BDR_ROOT variable is: %s\n", w_rpdfExtractScript);
+  errno_t w_ret = ::strcpy_s( w_rpdfExtractScript, 100, w_rextrtcVar);
+  w_ret = ::strcat_s( w_rpdfExtractScript, 100, "\\TestCmdLine.R");
+
+  // Configure process with R settings
+  QProcessEnvironment w_procEnv = QProcessEnvironment::systemEnvironment();
+  w_procEnv.insert( "RHOME", w_renvVar);
+  w_procEnv.insert( "RLIBPATHS",QString("C:\\Users\\jean\\Documents\\R\\win-library\\4.1"));
+
+  QFileInfo w_wkrDir(w_filesName.front());
+  QString w_absPdfPath = w_wkrDir.absolutePath();
+  //   env.insert("PYTHONHOME", "C:\\Python27");
+  QProcess w_process(this);
+  w_process.setProcessEnvironment(w_procEnv);
+  // Sets the working directory to dir. QProcess will start the process in this directory.
+  // The default behavior is to start the process in the working directory of the calling process.
+  //w_process.setWorkingDirectory(aPdfPath);  otherwise set path working dir of app
+  w_process.setWorkingDirectory(w_absPdfPath);
+
+  QFileInfo w_fileInfo( w_filesName.front());
+  QString w_fname = w_fileInfo.fileName();
+  QString w_bname = w_fileInfo.baseName();
+  QString w_absPath = w_fileInfo.absoluteFilePath();
+  QString w_complPdfFile = w_fname; // filename with corresponding extension
+  //QString w_complTxtFile = w_bname + ".txt";
+  // Add a space at beginning of the file name 
+  QString w_txtPath = w_fileInfo.canonicalPath(); // +R"(/ )" + w_complTxtFile;
+
+  QString w_efile("-e");
+  QStringList params;
+  //w_process.start("Python", params);
+  //			QStringList params;
+  //std::cout << filesListIterator.next().constData() << std::endl;
+  params << w_rscriptPath << w_efile << w_rpdfExtractScript;
+
+  w_process.start("R Scripts", params);
+  if (w_process.waitForFinished(-1))
+  {
+    QByteArray p_stdout = w_process.readAll();
+    QByteArray p_stderr = w_process.readAllStandardError();
+    if( !p_stderr.isEmpty())
+      std::cout << "Python error:" << p_stderr.data();
+
+    //		qDebug() << "Python result=" << p_stdout;
+    if (!p_stdout.isEmpty())
+    {
+      std::cout << "Python conversion:" << p_stdout.data();
+    }
+    p_stdout; // write to console
+  }
+  // kill process
+  w_process.close();
+
+  free(w_renvVar);
+  free(w_rextrtcVar);
+
+  std::cout << "\n";
+}
+
 void AnalyzerBoxWidget::loadCsvFiles()
 {
   using namespace boost;
@@ -414,8 +583,10 @@ void AnalyzerBoxWidget::loadCsvFiles()
 
   // check for file extension valid
   if (!w_fileParser.isFileExtOk(w_filesName)) {
-    QMessageBox();
-    return;
+    QMessageBox w_mmsgBox;
+    w_mmsgBox.setText("Wrong File extension");
+    w_mmsgBox.exec();
+    return; // ?? not sure should i do that or tell user to select another file type? 
   }
 
 #if 0 // want to pass as argument the list of file instead of a list of file name 
@@ -510,7 +681,100 @@ void AnalyzerBoxWidget::loadCsvFiles()
   emit commandLoaded();
 }
 
+//   QProcess cmd;
+//   const QString myProc = "cmd.exe /c BoDucRPdfscript.bat " + MainWindow::getWorkingConfiguration();     
+//   QString sOldPath = QDir::currentPath();
+//   QString myPath = MainWindow::getWorkingDirectory();
+//   QDir::setCurrent(myPath);
+// 
+//   //Run it!
+//   cmd.startDetached(myProc);
+//   qDebug(myPath.toStdString().c_str());
+// 
+//   QDir::setCurrent(sOldPath);
 void AnalyzerBoxWidget::settingPath()
 {
-  throw "Not implemented yet";
+  // just testing for debug
+   QProcess cmd;
+   const QString myProc = "cmd.exe /c BoDucRPdfscript.bat"; // +MainWindow::getWorkingConfiguration();
+//   QString sOldPath = QDir::currentPath();
+//   QString myPath = MainWindow::getWorkingDirectory();
+//   QDir::setCurrent(myPath);
+ 
+   QString sOldPath = QDir::currentPath();
+   QString myPath = QDir::currentPath();
+
+   //Run it!
+   cmd.startDetached(myProc);
+   qDebug(myPath.toStdString().c_str());
+ 
+   QDir::setCurrent(sOldPath);
+}
+
+//  TODO: implementation is not complete
+void AnalyzerBoxWidget::loadRCsvFiles() // Load CSV button click
+{
+  using namespace boost;
+
+  // now opening files to be processed (user selection)
+  QStringList w_filesName = QFileDialog::getOpenFileNames(this, tr("Open File"),
+    QDir::currentPath(),
+    tr( "Text (*.txt *.csv *.pdf)")); // text replace (Unix like command)
+
+  // parse file to extract command (R csv conversion format)
+  bdAPI::BoDucParser w_fileParser( bdAPI::BoDucParser::eFileType::csv);
+
+  // check for file extension valid
+  if( !w_fileParser.isFileExtOk(w_filesName)) 
+  {
+    QMessageBox w_msgBox; // to be completed, warning message
+    w_msgBox.setText("Wrong File Extension");
+    w_msgBox.exec();
+    return; // not sure about this one, should I return?
+  }
+
+#if 1 // want to pass as argument the list of file instead of a list of file name 
+  // some tests container of QFile
+  //    QFile w_fileTst(*w_begList);
+  std::forward_list<std::unique_ptr<QFile>> w_fwdList;
+  //    std::list<QFile> w_check;
+  //    w_check.emplace_back( QDir::currentPath() + "aa.txt");
+  // shall use the emplace_back version (move semantic)
+  // build vector in-place directly (more efficient)
+  // initialize our list starting element
+  auto iter = w_fwdList.before_begin();
+  QStringListIterator w_filesNameIter(w_filesName);
+  while (w_filesNameIter.hasNext())
+  {
+    // use placement new to create at memory location
+    w_fwdList.emplace_after( iter, std::make_unique<QFile>(w_filesNameIter.next()));
+  }
+
+  //   auto dist1 = std::distance(w_fwdList.cbefore_begin(),w_fwdList.cend());
+  //   std::unique_ptr<QFile> w_checkUniq( std::move( w_fwdList.front()));
+  //   dist1 = std::distance(w_fwdList.cbefore_begin(), w_fwdList.cend());
+  //   auto begFwd = w_fwdList.begin();
+  //   
+  //   std::unique_ptr<QFile> w_checkUniq( std::move(*begFwd));
+  //   QFileInfo w_checkFile(*w_checkUniq);
+  //   auto fileName = w_checkFile.fileName();
+  //   ++begFwd;
+  //   std::unique_ptr<QFile> iterpp = std::move(*begFwd);
+  //   QFileInfo chcaa(*iterpp);
+  //   auto nammeF = chcaa.fileName();
+
+  // now we are ready to read files of command
+  // NOTE
+  //   what we have (NOTE use auto will be appropriate here)
+  //std::vector<bdAPI::BoDucFileListCmdTxt> w_test123 = bdAPI::BoDucCmdFileReader::readFiles(w_fwdList);
+  const auto w_filesLoaded = bdAPI::BoDucCmdFileReader::readFiles(w_fwdList);
+
+  //++iter;
+  bdAPI::BoDucFileListCmdTxt w_sanityCheck = w_filesLoaded.back();
+//  auto checkFileName = w_sanityCheck.fileName();
+  auto w_checkNbCmd = w_sanityCheck.nbOfCmd();
+#endif
+
+  // next is to parse each files to extract data (loop on the vector of command file)
+  // store it in the report vector which is used to update the file data store (DB) 
 }

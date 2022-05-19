@@ -10,7 +10,7 @@
 
 // Good reference: https://solarianprogrammer.com/2011/10/16/cpp-11-raw-strings-literals-tutorial/
 
-namespace bdAPI { class BoDucBonLivraisonAlgorithm; }
+namespace bdAPI { class ExtractDataAlgorithm; }
 namespace bdAPI 
 {
   // deprecated, it has been refactored
@@ -46,7 +46,7 @@ namespace bdAPI
 		void setNbSelectedFiles(unsigned short aNbFilesSelectd) { m_userSelectF = aNbFilesSelectd; }
 		unsigned short getNbSelectedFiles() const { return m_userSelectF; }
 		void setPrintOut() {/*not implemented yet*/ }
-		void setAParseAlgrithm( BoDucBonLivraisonAlgorithm* aAlgo2Set)
+		void setAParseAlgrithm( ExtractDataAlgorithm* aAlgo2Set)
 		{
 			m_bdParseAlgorithm = aAlgo2Set;
 		}
@@ -90,7 +90,7 @@ namespace bdAPI
 		std::map<std::string, size_t> m_nbOfCmdInFile; 
 		std::vector<mapIntVecstr> m_vecOfMap; // multiple file selection support
 		std::vector<BoDucFields> m_reportData;
-		BoDucBonLivraisonAlgorithm* m_bdParseAlgorithm;
+		ExtractDataAlgorithm* m_bdParseAlgorithm;
 		unsigned short m_userSelectF;
 		eFileType m_fileExt;
 	};

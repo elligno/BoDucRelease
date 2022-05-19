@@ -11,6 +11,8 @@
 //#include <boost/algorithm/string/split.hpp> // splitting algo
 // Qt includes
 #include <QFile>
+#include <QFileInfo>
+#include <QVector>
 #include <QStringList>
 // boost include
 #include <boost/operators.hpp>
@@ -48,29 +50,32 @@ namespace bdAPI
       m_qListStrCmd.reserve(50); 
     }
 
-    // 
-    explicit BoDucCmdText( std::vector<std::string>& aVecstr) {
-      m_veCmdStr.reserve(50);
-      m_qListStrCmd.reserve(50);
-    }
-
-    BoDucCmdText(std::vector<std::string>&& aVecstr)  
-    {
-      m_veCmdStr = std::move(aVecstr);
-    }
-
     // default ctor will be ok
+    BoDucCmdText( const BoDucCmdText& aOther) = default;
+    BoDucCmdText& operator= ( const class BoDucCmdText& aOther) = default;
+    ~BoDucCmdText() = default;
+
+    // move semantic shall be supported
+    BoDucCmdText( BoDucCmdText&& aOther)
+      : m_qListStrCmd(std::move(aOther.m_qListStrCmd)),
+      m_veCmdStr( std::move(aOther.m_veCmdStr))
+    {}
 
     void push_line( std::string&& aLine2Mv)
     {
-      m_veCmdStr.push_back( std::move(aLine2Mv));
-      m_qListStrCmd.push_back( std::move(QString(aLine2Mv.data())));
+      m_veCmdStr.push_back( std::move( aLine2Mv));
+//      m_qListStrCmd.push_back( std::move( QString(aLine2Mv.data())));
+    }
+
+    void push_line( QString&& aLine2Mv)
+    {
+      m_qListStrCmd.push_back( std::move(aLine2Mv));
     }
 
     void push_line( const std::string& aLine)
     {
       m_veCmdStr.push_back(aLine);
-      m_qListStrCmd.push_back(QString(aLine.data()));
+  //    m_qListStrCmd.push_back( QString(aLine.data()));
     }
 
     void pop_line()
@@ -132,13 +137,28 @@ namespace bdAPI
         // check for a valid
         // "BROMPTON" contains "TON", we need some kind of mechanism
         // to check if this a valid code or a string contained 
-        return boost::contains(aStr, std::string("TM")) || boost::contains(aStr, std::string("TON"));
+        return boost::contains( aStr, std::string("TM")) || boost::contains(aStr, std::string("TON"));
       });
     }
 
     // before extracting let's check so
     bool hasTransporteurNameValid( const std::initializer_list<std::string>& aListTransporteur) const
     {
+      QStringListIterator w_qstrListIter{ m_qListStrCmd };
+      while( w_qstrListIter.hasNext())
+      {
+        if( w_qstrListIter.next().contains( QString{ "Transporteur" },Qt::CaseInsensitive))
+        {
+          if( w_qstrListIter.next().contains(QString{"NIR R-117971-3 C.P.B."}))
+          {
+            return true;
+          }
+        }
+      }//while-loop
+      // 
+      return false;
+
+#if 0
       auto begList = aListTransporteur.begin();
       while( begList != aListTransporteur.end())
       {
@@ -154,10 +174,11 @@ namespace bdAPI
       }//while-loop
 
       return false;
+#endif
     }
 
     // compatibility with Qt 
-    QStringList asQStringList() 
+    QStringList asQStringList() const
     { 
 //       auto beg = m_veCmdStr.cbegin();
 //       auto end = m_veCmdStr.cend();
@@ -172,8 +193,8 @@ namespace bdAPI
 
     std::vector<std::string> asStdVector() const { return m_veCmdStr; }
 
-    bool isEmpty() const { return m_veCmdStr.empty(); }
-    bool hasTokens( const std::initializer_list<std::string>& aListofTokens = { "Vivaco", "Notes" });
+    bool isEmpty() const { return m_qListStrCmd.empty(); /*m_veCmdStr.empty();*/ }
+    bool hasTokens( const std::initializer_list<std::string>& aListofTokens = { "Vivaco", "Notes", "Date" });
     bool hasBlankLines() const
     {
       return std::any_of( m_veCmdStr.cbegin(), m_veCmdStr.cend(),
@@ -247,7 +268,7 @@ namespace bdAPI
     QStringList m_qListStrCmd;
     std::vector<std::string> m_veCmdStr;
 
-    // shall be in the BdApp class
+    // shall be in the BdApp class??? still use it?
     bool useTM( const std::vector<std::string>& aVecOfCmdLines)  { return true;  } //default value
     bool useTON( const std::vector<std::string>& aVecOfCmdLines) { return false; } // default value
   };
@@ -288,7 +309,7 @@ namespace bdAPI
   public:
     BoDucFileListCmdTxt( QFile& aFile /*eSrcType aSrctext = eSrcType::pdf2csv*/) 
     : m_fileCmd(aFile), 
-      m_fileName( QFileInfo(m_fileCmd).completeBaseName().toStdString()),
+      //m_fileName( QFileInfo(m_fileCmd).completeBaseName().toStdString()),
       m_nbCmd(0) 
     {
       // not much to do for now
@@ -306,21 +327,23 @@ namespace bdAPI
     {
      // m_listOfCmd2File.push_front(aCmdTxt);
       // temporary, not sure if a forward list is appropriate for this task!
-      m_listOfCmd2File.emplace_after( m_listOfCmd2File.before_begin(), aCmdTxt);
+      //m_listOfCmd2File.emplace_after( m_listOfCmd2File.before_begin(), aCmdTxt);
+      m_vecOfBDCmd.push_back( std::move(aCmdTxt));
       ++m_nbCmd;
     }
+
     bool remove() { return false; } // based on command number
 
     size_t nbOfCmd() const 
     {
       return m_nbCmd;
     }
-    const std::string& fileName() const
-    {
-      return m_fileName;
-    }
+//     const std::string& fileName() const
+//     {
+//       return m_fileName;
+//     }
 
-    const QString& filename() const 
+    QString filename() const 
     {
       QFileInfo w_fInfo(m_fileCmd);
       return w_fInfo.completeBaseName(); 
@@ -343,14 +366,23 @@ namespace bdAPI
     }
 
     // just a test on how we should return element of the list 
-    BoDucCmdText getFront() const { return m_listOfCmd2File.front(); }
+    BoDucCmdText first() const { return m_vecOfBDCmd.front(); /*m_listOfCmd2File.front();*/ }
+    BoDucCmdText last() const  { return m_vecOfBDCmd.back();}
+
+    QVectorIterator<BoDucCmdText> getIterator() const 
+    { 
+      return QVectorIterator<BoDucCmdText>( m_vecOfBDCmd); 
+    }
 
     // Iterator on BoDucCmdText must be supported (boost range iterator)
+    // NO Qt iterator such as QVectorIterator
   private:
     QFile& m_fileCmd; /**< */
-    std::string m_fileName; /**< */
+//    std::string m_fileName; /**< */
     // maybe a forward list?? singly linked list
     std::forward_list<BoDucCmdText> m_listOfCmd2File; /**< */
+    // temporary just testing some concept
+    QVector<BoDucCmdText> m_vecOfBDCmd;
     size_t m_nbCmd; /**< */
   };
 } // End of namespace

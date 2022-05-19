@@ -259,7 +259,7 @@
 			return w_nbCmd;
 		}
 
-		void VictoReader::readDeliveryDate(const std::string& aFieldValue, BoDucFields& aBoducF)
+		void VictoReader::readDeliveryDate( const std::string& aFieldValue, BoDucFields& aBoducF)
 		{
 			using namespace std;
 			using namespace boost;
@@ -270,11 +270,11 @@
 			split(strs, aFieldValue, is_any_of(","));
 
 			// shall use the auto=lambda to define the lambda function
-			strs.erase(remove_if(strs.begin(), strs.end(), // delete empty element
+			strs.erase( remove_if(strs.begin(), strs.end(), // delete empty element
 				[](const string& s)
 			{ return s.empty(); }));
 
-			strs.erase(unique(strs.begin(), strs.end()), strs.end());
+			strs.erase( unique( strs.begin(), strs.end()), strs.end());
 			//		vector<string> w_datepromise;
 			//boost::split(w_datepromise, strs[1], boost::is_any_of(" ")); // need to be split
 

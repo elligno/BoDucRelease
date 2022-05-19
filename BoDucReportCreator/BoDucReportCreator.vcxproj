@@ -134,7 +134,8 @@
     <ClCompile Include="BdAPI\BoDucUtility.cpp" />
     <ClCompile Include="BdAPI\PdfMinerAlgo.cpp" />
     <ClCompile Include="BdAPI\PdfMinerReader.cpp" />
-    <ClCompile Include="BdAPI\VictoBonLivraison.cpp" />
+    <ClCompile Include="BdAPI\AcrobatCsvAlgorithm.cpp" />
+    <ClCompile Include="BdAPI\RCsvAlgorithm.cpp" />
     <ClCompile Include="BdAPI\VictoReader.cpp" />
     <ClCompile Include="BoDucReportCreator.cpp" />
     <ClCompile Include="main.cpp" />
@@ -153,7 +154,7 @@
     <ClInclude Include="BdAPI\BoDucApp.h" />
     <ClInclude Include="BdAPI\BoDucBaseReport.h" />
     <ClInclude Include="BdAPI\BoDucBonLivraison.h" />
-    <ClInclude Include="BdAPI\BoDucBonLivraisonAlgorithm.h" />
+    <ClInclude Include="BdAPI\ExtractDataAlgorithm.h" />
     <ClInclude Include="BdAPI\BoDucBonLivraisonReport.h" />
     <ClInclude Include="BdAPI\BoDucCmdDataExtractor.h" />
     <ClInclude Include="BdAPI\BoDucCmdFileReader.h" />
@@ -170,7 +171,9 @@
     <ClInclude Include="BdAPI\BoDucUtility.h" />
     <ClInclude Include="BdAPI\PdfMinerAlgo.h" />
     <ClInclude Include="BdAPI\PdfMinerReader.h" />
-    <ClInclude Include="BdAPI\VictoBonLivraison.h" />
+    <ClInclude Include="BdAPI\AcrobatCsvAlgorithm.h" />
+    <ClInclude Include="BdAPI\QBoDucFields.h" />
+    <ClInclude Include="BdAPI\RCsvAlgorithm.h" />
     <ClInclude Include="BdAPI\VictoReader.h" />
     <ClInclude Include="GeneratedFiles\ui_BoDucReportCreator.h" />
   </ItemGroup>

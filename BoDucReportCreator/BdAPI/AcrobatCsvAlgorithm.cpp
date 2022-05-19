@@ -15,7 +15,7 @@
 //#include "VictoReader.h"
 #include "BoDucReaderfix.h" // include VictoReader
 #include "BoDucFields.h"
-#include "VictoBonLivraison.h"
+#include "AcrobatCsvAlgorithm.h"
 //#include "Refactoring/TestAddressParserImpl.h"
 
 //bdAPI::VictoBonLivraison::VictoBonLivraison()
@@ -24,16 +24,6 @@
 // 	m_vecOfStruct.reserve(1000); // hard code for now
 // }
 
-//bdAPI::VictoBonLivraison::~VictoBonLivraison()
-//{
-//	std::cout << "Nothing to do\n";
-	// maybe clear vector, but i think it's done automatically 
-	// at the end of lifecycle of this object
-// 	if (!m_vecOfStruct.empty())
-// 	{
-// 		m_vecOfStruct.clear(); // size=0
-// 	}
-//}
 
 // Receive the BoDuc command in a vector of string which represent
 // each line of the order form (converted from pdf to csv)
@@ -45,7 +35,7 @@
 // ... allows you to manage orders, dispatching, loading, routing, ...
 // Shall make use of the iterator such as transform iterator to retrive the 
 // information
-void bdAPI::VictoBonLivraison::fillBoDucFields( const std::vector<std::string>& aCmdVec, 
+void bdAPI::AcrobatCsvAlgorithm::fillBoDucFields( const std::vector<std::string>& aCmdVec, 
 	                                              BoDucFields& aBoDucField)
 {
 	// contains the original algorithm steps algorithm

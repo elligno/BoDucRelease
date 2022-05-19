@@ -37,12 +37,12 @@ namespace bdAPI
     static std::vector<BoDucFileListCmdTxt> readFiles( const std::forward_list<std::unique_ptr<QFile>>& aListFiles,
       QString cmdSep = QString("Signature"));
 
+    // just a test for future dev
+    static BoDucFileListCmdTxt readFile( QFile& aFileAndPath);
+
   private:
     static mapIntVecstr readFile( const std::string& aFileAnPath,
       const std::string& aSplitCmdToken = "Signature");
-
-    // just a test for future dev
-    static mapIntVecstr readFile( QFile& aFileAndPath);
 
 
     /** */

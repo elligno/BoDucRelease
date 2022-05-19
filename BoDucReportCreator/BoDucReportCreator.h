@@ -4,13 +4,9 @@
 #include <QtWidgets/QWidget>
 #include <QtWidgets/QDialog>
 #include <QDir>
-//#include <QMultiMap>
-#include "ui_BoDucReportCreator.h"
-
 // App. includes
+#include "ui_BoDucReportCreator.h"
 #include "BdAPI/BoDucFields.h"
-//#include "BdAPI/BoDucApp.h"
-//#include "BdAPI/BoDucParser.h"
 #include "BdAPI/BoDucBonLivraison.h"
 
 // forward declaration
@@ -25,7 +21,7 @@ class QVBoxLayout;
 class QPushButton;
 class QProgressBar;
 class QTableWidget;
-class QDialogButtonBox; // not used for now
+//class QDialogButtonBox;  not used for now
 class QTableWidgetItem;
 
 class AnalyzerBoxWidget;
@@ -56,14 +52,12 @@ namespace bdApp
 
   public slots:
     void updateFileDataStore();  // update command in memory (vector)
-		//void saveCmdSelection();   deprecated
     void saveUserSelection( QTableWidgetItem* aItem);  // connect to button "save selection"
 		void setCapacityMode( /*eCapacityMode aCptyMode*/);
 		void showCmd();
 		void clearDispalyedCmd();
 		void currentUniteON();
 		void createBonLivraison();
-		//void testItemClick( QTableWidgetItem* aItem);  deprecated
 		void insertHour(int rowNo, int columnNo); // ???
 
 	private:

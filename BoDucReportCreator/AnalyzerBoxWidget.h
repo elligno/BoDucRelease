@@ -41,12 +41,17 @@ private:
 
   public slots:
     //void highlightChecked(QListWidgetItem* item);
-    /** */
+    /** Pdf Miner converter*/
     void loadPdfFiles();
+    /** Pdf R pdftools converter*/
+    void loadRPdfFiles();
+    void loadRPdfFiles_proto();
     /** */
     void loadCsvFiles();
     /** */
     void settingPath();
+    /** */
+    void loadRCsvFiles();
 private:
   // 
   std::vector<bdAPI::BoDucFields> m_reportCmd;

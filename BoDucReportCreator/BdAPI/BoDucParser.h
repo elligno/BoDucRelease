@@ -11,28 +11,29 @@
 #include <boost/algorithm/string.hpp> // string algorithm
 // App include
 #include "BoDucFields.h"
+#include "QBoDucFields.h"
+#include "BoDucCmdText.h"
 
 // forward declaration
-namespace bdAPI { class BoDucBonLivraisonAlgorithm; }
+namespace bdAPI { class ExtractDataAlgorithm; }
 
 namespace bdAPI 
 {
-	// abstract base class (not sure about that)
-  // Design Note:
-  //  Need a serious re-factoring, many of the methods are deprecated
-  //  New architecture (new types are under construction) which will 
-  //  take care of those deprecated methods 
-  // void parse(BoDucFileCmd) parse a command file
-  //  new type BoDucFileParser
-  //  
+	/** Abstract base class for parsing text command. 
+   *  New architecture (new types are under construction) which will 
+   *  take care of those deprecated methods 
+   * void parse(BoDucFileCmd) parse a command file
+   *  new type BoDucFileParser
+  **/  
 	class BoDucParser
 	{
   public:
     // type of file (command)  
     enum class eFileType
     {
-      csv = 0,
-      pdf = 1
+      csv = 0,  /**< Acrobat csv format*/
+      pdf = 1,  /**< Pdf miner format*/
+      rcsv = 2  /**< R csv format*/
     };
 
 	public:
@@ -43,17 +44,22 @@ namespace bdAPI
 	public:
     //BoDucParser(); not need it for now
     BoDucParser( const eFileType aFilext = eFileType::csv);
-		// part of refactoring
-		BoDucParser( BoDucBonLivraisonAlgorithm* aReader);
+		
 		// copy and assign ctor not allowed
 		BoDucParser( const BoDucParser& aOther) = delete;
 		BoDucParser& operator= ( const BoDucParser& aOther) = delete;
 
+    // part of refactoring
+		BoDucParser( ExtractDataAlgorithm* aReader);
+
 		// main algorithm to parse the csv file format of BoDuc (deprecated)
 //		virtual void extractData( const mapIntVecstr& aListOfCmd, BoDucBonLivraisonAlgorithm* aReader);
 
-		// part of refactoring (vector of string reprsent a command)
+		// part of refactoring (vector of string represent a command)
 		virtual BoDucFields extractData( const std::vector<std::string>& aListOfCmd);
+
+    // New signature 
+    virtual QBoDucFields extractData( const BoDucCmdText& aCmdTxt);
 		
     // return vector of all cmd (deprecated)
 		std::vector<BoDucFields> getBdFields() { return m_bdStruct; }
@@ -91,7 +97,7 @@ namespace bdAPI
     eFileType m_fileExt; /**< file extension*/
 
 		// part of the refactoring (deprecated)
-		BoDucBonLivraisonAlgorithm* m_fieldParserAlgo;  // deprecated
+		ExtractDataAlgorithm* m_fieldParserAlgo;  // deprecated
 		std::vector<BoDucFields> m_bdStruct; // not sure about this one??
 
     // deprecated

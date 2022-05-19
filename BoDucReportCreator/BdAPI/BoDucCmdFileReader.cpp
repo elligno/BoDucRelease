@@ -204,34 +204,54 @@ namespace bdAPI {
   }
 
   // not in use at the  moment, just a test 
-  BoDucCmdFileReader::mapIntVecstr BoDucCmdFileReader::readFile( QFile& aFileAndPath)
+  BoDucFileListCmdTxt BoDucCmdFileReader::readFile( QFile& aFileAndPath)
   {
     // debugging stuff
     QFileInfo w_fileInfo(aFileAndPath);
-    QMap<QString/*file name*/, QStringList/*text cmd*/> w_mapFile2Cmd;
-    QStringList w_listOfLines; w_listOfLines.reserve(50);
-    if( aFileAndPath.open( QFile::ReadOnly | QFile::Truncate)) 
-    {
-      QTextStream w_readText( &aFileAndPath);
-      auto w_lineReaded = w_readText.readLine(); // return a QString
-      w_listOfLines.push_back(w_lineReaded);
-      w_readText << "Result: " << qSetFieldWidth(10) << left << 3.14 << 2.7; // some formatting
-      // writes "Result: 3.14      2.7       "
 
-      // Use the BoDucCmdText type
+    BoDucFileListCmdTxt w_bdFileListCmdTxt( aFileAndPath);
+    BoDucCmdText w_bdCmdTxt;
+    // some character at the beginning of the line (crapt)
+    QString w_remChar = ","; 
+    if( aFileAndPath.open( QFile::ReadOnly | QFile::Text))
+    {
+      QTextStream w_readText(&aFileAndPath);
+      while( !w_readText.atEnd())
+      {
+        auto w_line = w_readText.readLine();
+        auto w_idx = w_line.indexOf( QString(",")); 
+        if( w_idx != 0)
+        {
+          w_line = w_line.remove( 0, w_idx + 1); // +1 to remove the whole string "," 
+        }
+        if( w_line.startsWith('\"'))
+        {
+          w_line.remove( QChar('\"'), Qt::CaseInsensitive);
+        }
+        //auto isWhiteSpace = w_line.startsWith('\"'); // remove " is character at beginning
+  //      QString w_test( w_line);
+        auto w_trimStr = w_line.trimmed();
+        w_bdCmdTxt.push_line( std::move(w_trimStr));
+
+        if( w_line.contains( "Signature"))
+        { 
+          // move semantic since we don't need this command
+          w_bdFileListCmdTxt.add( std::move(w_bdCmdTxt));
+        }
+      }//while-loop
     }
 
-    // debug purpose
-    return mapIntVecstr();
+    // return list of cmd as text format
+    return w_bdFileListCmdTxt;
   }
 
   // pass by reference no move semantic
   BoDucFileListCmdTxt BoDucCmdFileReader::readFile( const std::unique_ptr<QFile>& aFileAndPath, QString cmdSep/* = QString("Signature")*/)
   {
     // QFileInfo w_fileInfo(*aFileAndPath);
-    BoDucFileListCmdTxt w_bdFileListCmd(*aFileAndPath);
+    BoDucFileListCmdTxt w_bdFileListCmdTxt(*aFileAndPath);
    // std::vector<std::string> w_vecStr;
-    BoDucCmdText w_bdCmd;
+    BoDucCmdText w_bdCmdTxt;
    // w_vecStr.reserve(50);
 
     // ready to read line
@@ -240,21 +260,21 @@ namespace bdAPI {
       // start reading line to cmd text format
       // Shall be available to read file name with accent since 
       // QTextStream use UTF-8 encoding 
-      QTextStream w_readText(&(*aFileAndPath));
+      QTextStream w_readText( &(*aFileAndPath));
       while( !w_readText.atEnd())
       {
         auto w_line = w_readText.readLine();
-        w_bdCmd.push_line( w_line.toStdString());
+        w_bdCmdTxt.push_line( w_line.toStdString());
         if( w_line.contains(cmdSep))
         {
           // NOTE: Should also check for "tonnage" tags such as "TM" and "TON"
           // check transporteur name
-          if( w_bdCmd.hasTransporteurNameValid( m_lisTransporteur))
+          if( w_bdCmdTxt.hasTransporteurNameValid( m_lisTransporteur))
           {
             // something to ...
             // remove blank lines if any
-            w_bdFileListCmd.add( BoDucCmdText(w_bdCmd));
-            w_bdCmd.clearCommand(); // ready for next
+            w_bdFileListCmdTxt.add( BoDucCmdText(w_bdCmdTxt)); // shal do that  .add(std::move(w_bdCmdTxt));
+            w_bdCmdTxt.clearCommand(); // ready for next
           }
           else
           {
@@ -276,9 +296,10 @@ namespace bdAPI {
     // closing before leaving
     aFileAndPath->close();
 
-    return w_bdFileListCmd;
+    return w_bdFileListCmdTxt;
   }
 
+  // TODO: first pitch, need to review this code and complete implementation
   std::vector<BoDucFileListCmdTxt> BoDucCmdFileReader::readFiles( const std::forward_list<std::unique_ptr<QFile>>& aListFiles,
     QString cmdSep /*= QString("Signature")*/)
   {
@@ -308,7 +329,7 @@ namespace bdAPI {
 //       auto pathTest = w_checkInfoDbg.absoluteFilePath();
 
  //     BoDucFileListCmdTxt w_test = readFile( *w_fileListBegin);
-      w_filesCmdTxt.push_back(readFile(*w_fileListBegin));
+      w_filesCmdTxt.push_back( readFile( *w_fileListBegin));
 
       // increment iterator for next in the list
       ++w_fileListBegin;

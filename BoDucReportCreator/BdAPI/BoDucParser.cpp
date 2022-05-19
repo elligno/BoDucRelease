@@ -11,7 +11,8 @@
 #include "BoDucParser.h"
 #include "BoDucFields.h"
 #include "PdfMinerAlgo.h"
-#include "VictoBonLivraison.h"
+#include "AcrobatCsvAlgorithm.h"
+#include "RCsvAlgorithm.h"
 
 namespace bdAPI 
 {
@@ -22,7 +23,7 @@ namespace bdAPI
     m_bdStruct.reserve(50);
   }
 
-  BoDucParser::BoDucParser( BoDucBonLivraisonAlgorithm * aReader)
+  BoDucParser::BoDucParser( ExtractDataAlgorithm * aReader)
   : m_fileExt(eFileType::csv),
     m_fieldParserAlgo(aReader)
 	{
@@ -80,12 +81,16 @@ namespace bdAPI
   BoDucFields BoDucParser::extractData( const std::vector<std::string>& aTextCmd)
 	{
     using namespace std;
-    using BoDucDataAlgo = unique_ptr<BoDucBonLivraisonAlgorithm>;
+    using BoDucDataAlgo = unique_ptr<ExtractDataAlgorithm>;
 
     BoDucDataAlgo w_bdataAlgo = nullptr;  //make_unique<VictoBonLivraison>();
     if( eFileType::csv == getFileExt())
     {
-      w_bdataAlgo.reset( new VictoBonLivraison());
+      w_bdataAlgo.reset( new AcrobatCsvAlgorithm());
+    }
+    else if(eFileType::rcsv == getFileExt())
+    {
+      w_bdataAlgo.reset( new RCsvAlgorithm());
     }
     else if( eFileType::pdf == getFileExt())
     {
@@ -108,6 +113,43 @@ namespace bdAPI
 
     return w_boducStruct;
 	}
+
+  // TODO: must add support to R csv file format (RCsvAlgorithm)
+  QBoDucFields BoDucParser::extractData( const BoDucCmdText & aCmdTxt)
+  {
+    using namespace std;
+    using BoDucDataAlgo = unique_ptr<ExtractDataAlgorithm>;
+
+    BoDucDataAlgo w_bdataAlgo = nullptr;  //make_unique<VictoBonLivraison>();
+    if (eFileType::csv == getFileExt())
+    {
+      w_bdataAlgo.reset( new AcrobatCsvAlgorithm());
+    }
+    else if (eFileType::rcsv == getFileExt())
+    {
+      w_bdataAlgo.reset( new RCsvAlgorithm());
+    }
+    else if (eFileType::pdf == getFileExt())
+    {
+      w_bdataAlgo.reset( new PdfMinerAlgo());
+    }
+    else
+    {
+      // Shall throw an exception or return an error message
+      // NOTE debugging purpose, i do not think its a good 
+      // practice to return default ctor
+      return QBoDucFields {}; // or set a default algo
+    }
+
+    // filling the BoDuc struct	
+    QBoDucFields w_boducStruct;
+    if( w_bdataAlgo != nullptr)
+    {
+      w_boducStruct = w_bdataAlgo->fillBoDucFields( aCmdTxt);
+    }
+
+    return w_boducStruct;  // QBoDucFields{};
+  }
 
 	bool BoDucParser::useTM( const std::vector<std::string>& aVecOfCmdLines)
 	{

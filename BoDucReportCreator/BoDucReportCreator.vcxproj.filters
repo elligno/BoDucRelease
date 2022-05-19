@@ -56,9 +56,6 @@
     <ClCompile Include="BdAPI\BoDucReaderfix.cpp">
       <Filter>BoDucAPI Files</Filter>
     </ClCompile>
-    <ClCompile Include="BdAPI\VictoBonLivraison.cpp">
-      <Filter>BoDucAPI Files</Filter>
-    </ClCompile>
     <ClCompile Include="BdAPI\VictoReader.cpp">
       <Filter>BoDucAPI Files</Filter>
     </ClCompile>
@@ -83,11 +80,17 @@
     <ClCompile Include="ProgressUnitBoxWidget.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="BdAPI\BoDucBonLivraison.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="BdAPI\BoDucBonLivraisonReport.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BdAPI\BoDucBonLivraison.cpp">
+      <Filter>BoDucAPI Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BdAPI\AcrobatCsvAlgorithm.cpp">
+      <Filter>BoDucAPI Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BdAPI\RCsvAlgorithm.cpp">
+      <Filter>BoDucAPI Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -108,9 +111,6 @@
     <ClInclude Include="BdAPI\BoDucApp.h">
       <Filter>BoDucAPI Files</Filter>
     </ClInclude>
-    <ClInclude Include="BdAPI\BoDucBonLivraisonAlgorithm.h">
-      <Filter>BoDucAPI Files</Filter>
-    </ClInclude>
     <ClInclude Include="BdAPI\BoDucCsvReader.h">
       <Filter>BoDucAPI Files</Filter>
     </ClInclude>
@@ -121,9 +121,6 @@
       <Filter>BoDucAPI Files</Filter>
     </ClInclude>
     <ClInclude Include="BdAPI\BoDucReaderfix.h">
-      <Filter>BoDucAPI Files</Filter>
-    </ClInclude>
-    <ClInclude Include="BdAPI\VictoBonLivraison.h">
       <Filter>BoDucAPI Files</Filter>
     </ClInclude>
     <ClInclude Include="BdAPI\VictoReader.h">
@@ -172,6 +169,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="BdAPI\BoDucProDescrAnalyzer.hpp">
+      <Filter>BoDucAPI Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BdAPI\ExtractDataAlgorithm.h">
+      <Filter>BoDucAPI Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BdAPI\AcrobatCsvAlgorithm.h">
+      <Filter>BoDucAPI Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BdAPI\QBoDucFields.h">
+      <Filter>BoDucAPI Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BdAPI\RCsvAlgorithm.h">
       <Filter>BoDucAPI Files</Filter>
     </ClInclude>
   </ItemGroup>

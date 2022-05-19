@@ -181,39 +181,6 @@ namespace bdApp
     }
   }
 
-	// NOT COMPLETD *******************************
-	// at the moment we support 10 unit just do a check on each of them
-	// call when user select to save selection
-	//TODO: deprecated
-// 	void BoDucReportCreator::updateProgress()
-// 	{
-// 		if (m_currUnityON.compare(m_listUniteAvailable.at(0)) == 0) // identical
-// 		{
-// 			double w_val2Show = m_progressBar[0]->value() + std::get<2>(m_bdBonFields);
-// 			m_progressBar[0]->setValue(w_val2Show);
-// 		}
-// 		else if (m_currUnityON.compare(m_listUniteAvailable.at(1)) == 0)
-// 		{
-// 			double w_val2Show = m_progressBar[1]->value() + std::get<2>(m_bdBonFields);
-// 			m_progressBar[1]->setValue(w_val2Show);
-// 		}
-// 		else if (m_currUnityON.compare(m_listUniteAvailable.at(2)) == 0)
-// 		{
-// 			double w_val2Show = m_progressBar[2]->value() + std::get<2>(m_bdBonFields);
-// 			m_progressBar[2]->setValue(w_val2Show);
-// 		}
-// 		else if (m_currUnityON.compare(m_listUniteAvailable.at(3)) == 0)
-// 		{
-// 			double w_val2Show = m_progressBar[3]->value() + std::get<2>(m_bdBonFields);
-// 			m_progressBar[3]->setValue(w_val2Show);
-// 		}
-// 		else if (m_currUnityON.compare(m_listUniteAvailable.at(4)) == 0)
-// 		{
-// 			double w_val2Show = m_progressBar[4]->value() + std::get<2>(m_bdBonFields);
-// 			m_progressBar[4]->setValue(w_val2Show);
-// 		}
-// 	}
-
 	// Design Note (March 19)
 	//  Can be done by using a while loop. While !=0 continue
 	//  Once found, m_progressBar[i] whatever you want to do.
@@ -237,27 +204,6 @@ namespace bdApp
 
 		return ret;
 	}
-
-  //TODO: deprecated
-// 	void BoDucReportCreator::savetest()
-// 	{
-// 		updateProgress();
-// 
-// 		//QMessageBox(tr("Delete it from table"));
-// 		QMessageBox msgBox;
-// 		msgBox.setWindowTitle("Delete Command");
-// 		msgBox.setText("Sure you want delete it?");
-// 		msgBox.setStandardButtons(QMessageBox::Yes);
-// 		msgBox.addButton(QMessageBox::No);
-// 		msgBox.setDefaultButton(QMessageBox::No);
-// 
-// 		if (msgBox.exec() == QMessageBox::Yes) {
-// 			m_tblWidget->removeRow(m_currowNoSelected); // row number
-// 		}
-// 		else {
-// 			// do something else
-// 		}
-// 	}
 
   // connected to signal from AnalyzerBox button (load)  
   void BoDucReportCreator::updateFileDataStore()

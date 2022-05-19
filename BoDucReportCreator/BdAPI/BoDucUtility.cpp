@@ -152,7 +152,7 @@ QStringList BoDucUtility::convertPdf2Txt( const QStringList& aListOfFiles, const
     params << aPythonPath << w_ofile + w_complTxtFile << w_complPdfFile;
 
     w_process.start("Python", params);
-    if (w_process.waitForFinished(-1))
+    if( w_process.waitForFinished(-1))
     {
       QByteArray p_stdout = w_process.readAll();
       QByteArray p_stderr = w_process.readAllStandardError();
@@ -168,7 +168,7 @@ QStringList BoDucUtility::convertPdf2Txt( const QStringList& aListOfFiles, const
     }
     // kill process
     w_process.close();
-  }
+  }//while-loop
   // swap content, we are interested by .txt files (parsing) 
   //w_listofTxtFiles.swap(m_filesName);
   return w_listofTxtFiles;
