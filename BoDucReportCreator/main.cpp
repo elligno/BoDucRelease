@@ -20,10 +20,10 @@ void findTwoSeqWhiteSpace( const std::string& aString2Check, std::size_t& aEndFi
     return;
   }
 
-  if( std::isalpha( aString2Check[0], std::locale{}) == 0) // first character is white space
-  {
-    return;
-  }
+  //if( std::isalpha( aString2Check[0], std::locale{}) == 0) // first character is white space
+  //{
+  //  return;
+  //}
 
   auto strPos = aString2Check.find_first_of(' ');
   if( strPos == std::string::npos) // end of string
@@ -32,7 +32,8 @@ void findTwoSeqWhiteSpace( const std::string& aString2Check, std::size_t& aEndFi
   }
 
   std::string w_subStr;
-  if( std::isalpha( aString2Check[strPos + 1], std::locale{}) != 0)
+  if( std::isalpha( aString2Check[strPos + 1], std::locale{}) != 0 ||
+      std::isdigit( aString2Check[strPos + 1], std::locale{}) != 0)
   {
     aEndFirstStr += strPos+1;
     std::string w_restOfStr( aString2Check.cbegin() + strPos + 1, aString2Check.cend());
@@ -152,6 +153,61 @@ int main( int argc, char *argv[])
 
   w_vecOfLines.pop_front();
 
+  std::vector<std::string> w_vecCheck;
+  w_vecCheck.reserve(75);
+  // w_splittedVec.reserve(75);
+  for (const auto& w_str : w_vecOfLines)
+  {
+    const char* w_search_str = ",";
+    auto siz = w_str.find_first_of(w_search_str); // returns iterator pos of comma
+    if (siz != std::string::npos)
+    {
+      // found it
+      siz += 1; // pos of comma, we we want to remove the whole "," 
+      std::string w_subStr{ w_str.cbegin() + siz, w_str.cend() };
+      // remove Double Quotation "\" beginning of the string
+      w_subStr.erase(std::remove(w_subStr.begin(), w_subStr.end(), '\"'), w_subStr.end());
+      boost::trim_left(w_subStr); // remove white space at beginning
+      w_subStr.erase(std::remove(w_subStr.begin(), w_subStr.end(), '\r'), w_subStr.end());
+      w_vecCheck.push_back(w_subStr);
+    }
+    // remove end of line cartridge return character
+    //w_vecCheck.erase( std::remove(w_vecCheck.begin(), w_vecCheck.end(), '\r'), w_vecCheck.end());
+
+    //    boost::split( w_splittedVec, w_str, boost::is_any_of(","));
+    //    w_splittedVec.pop_front();
+    //   //   w_splittedVec.erase( w_splittedVec.begin(), w_splittedVec.begin() + 1);
+    //   w_splittedVec[0].erase(std::remove(w_splittedVec[0].begin(), w_splittedVec[0].end(), '\"'), w_splittedVec[0].end());
+    //   //   boost::split( w_splittedVec[0], boost::is_any_of(" "));
+    //       boost::trim_left(w_splittedVec[0]);
+    //       w_vecCheck.push_back(w_splittedVec[0]);
+  }
+
+  // check address
+  auto addrsIdx = 9;
+  auto nbLinesAdrs = 3;
+  std::vector<std::string> w_vecOfAdrs;
+  w_vecOfAdrs.reserve(nbLinesAdrs);
+  for (auto i=0;i<nbLinesAdrs;++i)
+  {
+    std::string w_addrstr = w_vecCheck[addrsIdx++]; // shall be customer name
+    auto w_len = w_addrstr.size();
+    std::size_t w_begLastStr{};
+    findTwoSeqWhiteSpace(w_addrstr, w_begLastStr); // find 2 white space sequence
+    std::string w_shippedAddrs{ w_addrstr.cbegin() + w_begLastStr, w_addrstr.cend() };
+    auto w_foundFirstCharPos = w_shippedAddrs.find_first_not_of(' '); // find first character
+    if (w_foundFirstCharPos != std::string::npos)
+    {
+      // remove white space from beginning to 
+      w_shippedAddrs.erase(w_shippedAddrs.cbegin(), w_shippedAddrs.cbegin() + w_foundFirstCharPos); // the first non white space
+    }
+    w_vecOfAdrs.push_back(w_shippedAddrs);
+  }
+  for (std::string w_adrsPart : w_vecOfAdrs)
+  {
+    std::cout << w_adrsPart.c_str() << "\n";
+  }
+  
   //
   //    Qt API
   //

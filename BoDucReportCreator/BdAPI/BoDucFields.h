@@ -10,6 +10,8 @@
 #include <boost/operators.hpp>
 // Qt include
 #include <QString>
+// BoDuc API include
+#include "QBoDucFields.h"
 
 namespace bdAPI
 {
@@ -19,7 +21,11 @@ namespace bdAPI
 		// alias <cmdNo, shippedTo, deliveryDate,prod code, prod, qty,silo>
 		using bdTpl = std::tuple<std::string, std::string, std::string, long, std::string,float, std::string>;
 		
-		// default ctor
+    // Design Note
+    // All those default ctor are not need the default one are ok
+    // (copy/assign), move and destructor
+		
+    // default ctor
 		BoDucFields();
     // not sure yet, i come back later with more details
     BoDucFields( const BoDucFields& aOther) = default;
@@ -27,6 +33,18 @@ namespace bdAPI
 		//move semantic, no don't need that!!! just pass a reference, that's it!!
 		BoDucFields( bdTpl&& aTpl);
     ~BoDucFields() = default;
+
+    // Converter (use move semantic?? check with Nico's book about move semantic)
+    BoDucFields( QBoDucFields aBdFiled)
+    {
+      m_noCmd = aBdFiled.m_noCmd.toStdString();
+      m_deliverTo = aBdFiled.m_deliverTo.toStdString();
+      m_datePromise = aBdFiled.m_datePromise.toStdString();
+      m_prodCode = aBdFiled.m_prodCode;
+      m_produit = aBdFiled.m_produit.toStdString();
+      m_qty = aBdFiled.m_qty;
+      m_silo = aBdFiled.m_silo.toStdString();
+    }
 
 		friend bool operator== (const BoDucFields& aField1, const BoDucFields& aField2)
 		{

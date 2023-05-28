@@ -127,12 +127,17 @@ namespace bdAPI
         std::copy( w_strList.cbegin(), w_strList.cbegin()+w_idxTM, std::back_inserter(w_descrProd));
         // Next line of prod descr
         auto w_nextLineDescr = w_cmdIter.next();
-        w_descrProd.push_back(w_nextLineDescr);
+        if( !w_nextLineDescr.contains(QString{ "Vivaco" }) || 
+            !w_nextLineDescr.contains(QString{ "Notes" }) || !w_nextLineDescr.contains(QString{ "Info" }))
+        {
+          w_descrProd.push_back(w_nextLineDescr);
+        }
+
         auto w_prodDescrCmplt = w_descrProd.join( QString{ " " }); // whole descr.
         w_bdFields.m_produit = w_prodDescrCmplt;
         
-   //     w_strList.pop_back();
-        auto w_qtyOrdered = w_strList.back();
+   //     w_strList.pop_back(); original
+        auto w_qtyOrdered = w_strList[w_idxTM+1];
         w_bdFields.m_qty = w_qtyOrdered.toFloat();
 
         // 1 1234567687 ....

@@ -11,7 +11,7 @@ namespace bdAPI
 {
   /** Aggregate ... to be completed*/
   struct QBoDucFields : public boost::equality_comparable<QBoDucFields>,
-                        public boost::less_than_comparable<QBoDucFields>\
+                        public boost::less_than_comparable<QBoDucFields>
   {
     QString m_noCmd;          /**< command tag*/
     QString m_deliverTo;      /**< shipping address*/

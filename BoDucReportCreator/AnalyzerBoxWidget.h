@@ -56,4 +56,6 @@ private:
   // 
   std::vector<bdAPI::BoDucFields> m_reportCmd;
   eCptyMode m_capacityLoad = eCptyMode::normal; /**< set capacity load (normal/degel)*/
+
+  void removeWhiteSpaceFromFileName();
 };

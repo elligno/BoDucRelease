@@ -210,9 +210,10 @@ namespace bdAPI {
     QFileInfo w_fileInfo(aFileAndPath);
 
     BoDucFileListCmdTxt w_bdFileListCmdTxt( aFileAndPath);
+
     BoDucCmdText w_bdCmdTxt;
     // some character at the beginning of the line (crapt)
-    QString w_remChar = ","; 
+ //   QString w_remChar = ","; 
     if( aFileAndPath.open( QFile::ReadOnly | QFile::Text))
     {
       QTextStream w_readText(&aFileAndPath);

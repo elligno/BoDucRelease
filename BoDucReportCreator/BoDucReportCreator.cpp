@@ -207,7 +207,7 @@ namespace bdApp
 
   // connected to signal from AnalyzerBox button (load)  
   void BoDucReportCreator::updateFileDataStore()
- {
+  {
     // ready to save to data store
     bdAPI::BoDucBaseReport w_tmpFile(m_reportFile);
 
@@ -704,10 +704,10 @@ namespace bdApp
     QDate w_minDate(QDate::currentDate());
 		m_dateMinSelected = new QDateEdit;
 		m_dateMinSelected->setCalendarPopup(true);
-		m_dateMinSelected->setMinimumDate(w_minDate.addMonths(-48));
+		m_dateMinSelected->setMinimumDate(w_minDate.addMonths(-72));
 	  m_dateMaxSelected = new QDateEdit;
 		m_dateMaxSelected->setCalendarPopup(true);
-		m_dateMaxSelected->setMinimumDate(w_minDate.addMonths(-48));
+		m_dateMaxSelected->setMinimumDate(w_minDate.addMonths(-72));
 		w_vDateRngBox->addWidget(w_dateRngLbl);
 		w_vDateRngBox->addWidget(m_dateMinSelected);
 		w_vDateRngBox->addWidget(m_dateMaxSelected);
