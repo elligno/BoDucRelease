@@ -33,7 +33,7 @@ if( file_ext(file2Test) == "pdf")
   vecSplittedLines <- pdf_text(file2Test) %>% strsplit(split = "\n")
   
   list2Vec <- unlist(vecSplittedLines)
-#  csvSave <- str_c(csvPath, "Martinco co 200957-200969.csv")
+  #  csvSave <- str_c(csvPath, "Martinco co 200957-200969.csv")
   csvSave <- str_c(csvPath, args[1L])
   remPdfExt <- str_sub(csvSave, end=-4)
   csvFileName <- str_c(remPdfExt, "csv")
