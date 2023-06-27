@@ -80,22 +80,69 @@ namespace bdApp
 		m_tblWidget(Q_NULLPTR),
 		m_listUnite(Q_NULLPTR),
 		m_bonLivraisonFile("CommandReport.txt"),  // deprecated
-    m_reportFile( QString("CommandReport.txt"))
-//		m_displaySelect(eDisplayMode::all) // default (deprecated)
+    m_reportFile( QString("CommandReport.txt")),
+  //  m_reportFolder{R"(C:\Users\user\...)"}, // raw string
+    m_cmdReportFile{ QFile{ m_reportFile.fileName() } }
 	{
-		setWindowTitle("BoDucReportCreator");
+		setWindowTitle( "BoDucReportCreator" );
    
-    // set some environment variable
-    setReportFolder();
+    // Design Note
+    //  when in production things will be different, BoDuc 
+    //  production, files are saved at the location PDF Attachments
+    //  C:\Users\user\... Francois email for the complete
+    //  ReportFiles folder, not sure where it will be located
+    //  maybe on the desktop?? 
+
+    // set some environment variable (testing environment)
+    m_reportFolder.setCurrent(QDir::currentPath());
+    m_reportFolder.cdUp();
+
+    // sanity check
+    if( m_reportFolder.cd(QString{ "ReportFiles" }))
+    {
+      QMessageBox msgBox;
+      msgBox.setText(QString{ "Path of Report folder is " } + m_reportFolder.absolutePath());
+      msgBox.exec();
+
+      m_cmdReportFile.setReportWorkingFolder(m_reportFolder);
+    }
 
     // at start up we load the report file if it exist,
-    // otherwise we have to create it??? 
+    // otherwise it will be created when processing new 
+    // order (created by BoDucBaseReport::createReport)
+    // check if file exist, if doesn't it create it.
     // file data store loaded in memory, ...
     if( m_reportFolder.exists( m_reportFile.fileName()))
     {
-      QFileInfo w_reportFileInfo(m_reportFolder, m_reportFile.fileName());
+      QFileInfo w_reportFileInfo( m_reportFolder, m_reportFile.fileName());
       m_vectorOfCmd = bdAPI::BoDucUtility::loadCmdReportInVector( w_reportFileInfo.filePath());
+      // We need a log file 
+      QMessageBox msgBox;
+      msgBox.setText(QString{"Command Report Loaded"});
+      msgBox.exec();
     }
+
+    // don't need that
+//     else // doesn't exist, create it
+//     {
+//       QMessageBox msgBox;
+//       msgBox.setText(QString{ "Default dir Command Report Loaded" });
+//       msgBox.exec();
+// 
+//       QFileInfo w_file2Create{ m_reportFolder, m_reportFile };
+//       QFile w_data; // set file name of an existing one
+//       w_data.setFileName(w_file2Create.fileName());
+//       if( w_data.open(QFile::WriteOnly | QFile::Text))
+//       {
+//         QTextStream out(&w_data);
+//         out << "\n";
+//       }
+// 
+//       if (w_data.isOpen())
+//       {
+//         w_data.close();
+//       }
+//     }
 
 		// set display formating (Widget table) and user selection config  
 		setupViews();
@@ -208,13 +255,15 @@ namespace bdApp
   // connected to signal from AnalyzerBox button (load)  
   void BoDucReportCreator::updateFileDataStore()
   {
-    // ready to save to data store
-    bdAPI::BoDucBaseReport w_tmpFile(m_reportFile);
+    // warn user that data sore updated, need to press 'ok'
+    QMessageBox msgBoxdbg;
+    msgBoxdbg.setText("Ready to update Data Store.");
+    msgBoxdbg.exec();
 
     auto w_vecOfCmd = m_analyzerBox->getCommandLoaded();
     
     // write to report file (should it be update report)
-    w_tmpFile.createReport( w_vecOfCmd);
+    m_cmdReportFile.createReport( w_vecOfCmd);
 
     // warn user that data sore updated, need to press 'ok'
     QMessageBox msgBox;
@@ -230,6 +279,8 @@ namespace bdApp
     // signal sent about new commands added to report file
     QFileInfo w_reportFileInfo(m_reportFolder, m_reportFile.fileName());
     m_vectorOfCmd = bdAPI::BoDucUtility::loadCmdReportInVector(w_reportFileInfo.filePath());
+
+    std::cout;
   }
 
   // Next version of the command selection saving mechanism
@@ -704,10 +755,10 @@ namespace bdApp
     QDate w_minDate(QDate::currentDate());
 		m_dateMinSelected = new QDateEdit;
 		m_dateMinSelected->setCalendarPopup(true);
-		m_dateMinSelected->setMinimumDate(w_minDate.addMonths(-72));
+		m_dateMinSelected->setMinimumDate(w_minDate.addMonths(-6));
 	  m_dateMaxSelected = new QDateEdit;
 		m_dateMaxSelected->setCalendarPopup(true);
-		m_dateMaxSelected->setMinimumDate(w_minDate.addMonths(-72));
+		m_dateMaxSelected->setMinimumDate(w_minDate.addMonths(-6));
 		w_vDateRngBox->addWidget(w_dateRngLbl);
 		w_vDateRngBox->addWidget(m_dateMinSelected);
 		w_vDateRngBox->addWidget(m_dateMaxSelected);
@@ -930,23 +981,81 @@ namespace bdApp
 
   void BoDucReportCreator::setReportFolder()
   {
+#if 0 // just for debugging purpose
     // not sure how it will be set?? think about it 
     // QDir::setCurrent(myPath); set by user??
     QString w_pathNow = QDir::current().absolutePath();
     m_reportFolder.setPath(w_pathNow);
 
-#if 0 // just for debugging purpose
     QMessageBox msgBox;
     msgBox.setText(w_pathNow);
     msgBox.exec();
-#endif
     
+    // *************************************************************
+    // This is a big issue, when deploying this is infinite loop
+    // because it never reach that folder it doesn't first time 
+    // you start the application.
+
     // looking for report folder (file database) 
     while( !m_reportFolder.exists( QString("ReportFiles")))
     {
       m_reportFolder.cdUp();
     }
     m_reportFolder.cd( QString("ReportFiles"));
+
+#endif
+
+#if 1
+    // Design Note
+    //   Bug with this implementation when deploying on client machine
+    //   because the folder doesn't exist (first start the appli) and
+    //   don't make sense to cdUp() (dev env it works) otherwise it won't.
+    //   First we need to decide folder location.
+
+    // Return an existing directory selected by the user.
+//     QString w_cmdReportDir = QFileDialog::getExistingDirectory(this, tr("Open Directory"),
+//       "/ReportFiles",
+//       QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+// 
+//     QMessageBox msgBox;
+//     msgBox.setText(w_cmdReportDir);
+//     msgBox.exec();
+
+    QFile w_config2Read(QString("BoDuConfig.txt"));
+    w_config2Read.open(QFile::ReadOnly);
+    QTextStream w_textConfig2Read(&w_config2Read);
+    while( !w_textConfig2Read.atEnd())
+    {
+      auto w_strReaded = w_textConfig2Read.readLine();
+      const auto w_strCfgSplit = w_strReaded.split("=");
+      auto w_keySplit = w_strCfgSplit.at(0);
+      auto w_reportFilePath = w_strCfgSplit.at(1);
+//       auto w_keySplit = (w_strCfgSplit.split("=")[0]);
+//       auto w_reportFilePath = (w_strCfgSplit.split("=")[1]);
+      if( w_keySplit.contains(QString("reportdir")))
+      {
+      //  m_reportFolder.setPath(w_reportFilePath);
+        QDir w_path2Set(w_reportFilePath);
+        //Returns the application's current directory.
+        QDir w_curPath = QDir::current();
+        auto pp = w_curPath.absolutePath();
+        QString name = w_path2Set.dirName();
+     //   auto w_absPath = w_path2Set.absolutePath();
+        auto dirExist = w_path2Set.exists();
+        //m_reportFolder = w_lastSplit;
+        break;
+      }
+    }
+    
+//     QDir w_path2Set(w_reportFilePath);
+//     QString name = m_reportFolder.dirName();
+//     m_reportFolder.cdUp();
+//     m_reportFolder.cdUp();
+//     auto dirExist = m_reportFolder.exists();
+    //int i = 0;
+    // didn't find anything
+  //  m_reportFolder.setPath(w_cmdReportDir);
+#endif
   }
 
   // clear all cmd in the display window

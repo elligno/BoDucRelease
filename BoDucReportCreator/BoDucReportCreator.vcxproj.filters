@@ -92,6 +92,9 @@
     <ClCompile Include="BdAPI\RCsvAlgorithm.cpp">
       <Filter>BoDucAPI Files</Filter>
     </ClCompile>
+    <ClCompile Include="BdAPI\BoDucCmdText.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="BoDucReportCreator.ui">
@@ -193,6 +196,9 @@
     </QtMoc>
     <QtMoc Include="ProgressUnitBoxWidget.h">
       <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="BdAPI\QBoDucProdAnalyzer.h">
+      <Filter>BoDucAPI Files</Filter>
     </QtMoc>
   </ItemGroup>
 </Project>

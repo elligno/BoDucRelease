@@ -14,6 +14,7 @@
 // Qt includes
 #include <QVector>
 #include <QFileInfo>
+#include <QMessageBox>
 // App includes
 #include "BoDucUtility.h"
 #include "AddressAlgorithm.h"
@@ -355,8 +356,11 @@ std::vector<BoDucFields> BoDucUtility::loadCmdReportInVector( const QString & aF
   // check if it is open
   if( !infile) 
   {
-    // Should use a log file
-    std::cerr << "Could not open file for reading\n";
+    QMessageBox msgBox;
+    msgBox.setText( QString{ "Could not open Command report file for reading\n" });
+    msgBox.exec();
+
+    // shall do something, return or ...
   }
 
   std::vector<bdAPI::BoDucFields> w_vecBD;

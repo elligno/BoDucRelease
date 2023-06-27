@@ -14,33 +14,26 @@ namespace bdAPI
   public:
 
     // not sure if i should pass it as reference or value? good question
-    BoDucBaseReport( QFile& aRepFile);
+    BoDucBaseReport( const QFile& aRepFile);
 
     /** Base method to be overriden by subclass according to report type*/
     // it shall be abstract but for now we keep it this way
     virtual void createReport( const std::vector<bdAPI::BoDucFields>& aData2Report);
 
-    void setReportWorkingFolder();
+    /** R-value version*/
+    virtual void createReport(std::vector<bdAPI::BoDucFields>&& aData2Report);
+    
+    /** */
+    void setReportWorkingFolder(QDir aWorkingFolder) { m_reportFolder = aWorkingFolder; }
 
     /** */
-    QString reportFileName() const;
+    QString reportFileName() const { return m_cmdReport.fileName(); }
 
     /** */
     void setFormat() {}
 
   private:
-    QFile& m_cmdReport;
+    QFile m_cmdReport;  //<** */
     QDir m_reportFolder;
   };
-
-  // Done in a separate file
-//   // Create a bon livraison report
-//   class BoDucBonLivraison : BoDucBaseReport 
-//   {
-//   public:
-//     void setUnitNo(unsigned aUnitNo) { m_unitNo = aUnitNo; }
-//     unsigned unitNo() { return m_unitNo; }
-//   private:
-//     unsigned m_unitNo; /**< unit number*/
-//   };
 } //End of namespace

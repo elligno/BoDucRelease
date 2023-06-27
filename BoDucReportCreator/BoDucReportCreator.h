@@ -8,6 +8,7 @@
 #include "ui_BoDucReportCreator.h"
 #include "BdAPI/BoDucFields.h"
 #include "BdAPI/BoDucBonLivraison.h"
+#include "BdAPI/BoDucBaseReport.h"
 
 // forward declaration
 class QWidget;
@@ -175,9 +176,12 @@ private:
 		eCapacityMode m_capacityLoad = eCapacityMode::normal;
     AnalyzerBoxWidget* m_analyzerBox; // group box that contains widget to load and parse command
     QString m_defaultDir = QDir::currentPath();
+    
     // location of the file database
     QDir m_reportFolder;
+    bdAPI::BoDucBaseReport m_cmdReportFile;
     void setReportFolder();
+
     //void setQProcessEnv( /*const QString& aPythonPath, const QString& aPdfPath*/);
     void initMapUserSelection(); // deprecated
     void createMapBonLivraison();

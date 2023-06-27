@@ -1,8 +1,13 @@
 #pragma once
-// C++ include
+
+// C++ includes
 #include <sstream>
+#include <utility>
+// Qt include
+#include <QMessageBox>
 // App include
 #include "RCsvAlgorithm.h"
+#include "QBoDucProdAnalyzer.h"
 
 namespace bdAPI
 {
@@ -28,7 +33,7 @@ namespace bdAPI
     // is exactly the same as the pdf rendering. Algorithm for parsing the command
     // goes sequentially (take one keyword after one)
 
-    QBoDucFields w_bdFields;
+    QBoDucFields w_bdFields {}; // set all attributes to zero or empty string?
 
     // loop over each line of the command and check if the line contains the given keyword. 
     std::cout << "This cmd need to be treated\n";
@@ -38,22 +43,23 @@ namespace bdAPI
     auto w_strListIdx{ 0 }; // keyword index
     auto w_checkSiz = aCmdVec.size(); // number of lines don't work!!
     
-    QStringListIterator w_cmdIter{ aCmdVec.asQStringList() };
-    while( w_cmdIter.hasNext()) // iterate over each cmd line
+    QStringListIterator w_cmdIter{ aCmdVec.getCmdList() };
+    while( w_cmdIter.hasNext()) // iterate over each cmd line (one after one)
     {
       auto w_currLine = w_cmdIter.next();
-      if (w_currLine.contains( QString{ w_keywords[0] }))
+      if( w_currLine.contains( QString{ w_keywords[0] })) // Command order
       {
-        auto w_cmdNo = w_currLine.split(" ").back();
+        auto w_cmdNo = w_currLine.split(" ").back();  // last element
         //  auto w_cmdNo = w_strList.back();
-        if (w_cmdNo.startsWith(QString{ "CO" }))
-        {
-          std::cout << "Cmd number is: " << w_cmdNo.data() << "\n";
-        }
+//         if (w_cmdNo.startsWith(QString{ "CO" }))
+//         {
+//           std::cout << "Cmd number is: " << w_cmdNo.data() << "\n";
+//         }
         //++w_strListIdx;  next in the list
         w_bdFields.m_noCmd = w_cmdNo;
+        continue;  //no point to do the rest of while statement
       }
-      if (w_currLine.contains( QString{ w_keywords[1] }))
+      if (w_currLine.contains( QString{ w_keywords[1] }))  // Shipping address
       {
         QStringList w_addressLines;
         QString w_Line2look4;
@@ -70,11 +76,12 @@ namespace bdAPI
         } while (!w_Line2look4.contains(QString{ "Contact" }));
         w_addressLines.pop_back();
         auto sizeQStrList = w_addressLines.size();
-        std::cout << "We have something\n";
+      //  std::cout << "We have something\n";
 
         w_bdFields.m_deliverTo = w_addressLines.join(QString{" "});
+        continue;
       }
-      if( w_currLine.contains( QString{ w_keywords[2] }))
+      if( w_currLine.contains( QString{ w_keywords[2] })) // Delivery date
       {
         auto w_Line2look4 = w_cmdIter.next();
         std::istringstream iss{ w_Line2look4.toStdString() };
@@ -92,24 +99,41 @@ namespace bdAPI
           }
           continue;
         }
+        continue;
       }
       if( w_currLine.contains( QString{ w_keywords[3] })) // qty ordered
       {
         auto w_Line2look4 = w_cmdIter.next();
-        // may be split line
+
+        // check for "UN SEUL SILO" sometimes silo is a string
+        if( w_Line2look4.contains( QString{ "UN SEUL" }))
+        {
+          // silo is not a number and represented by a string 
+          w_bdFields.m_silo = QString{"UN SEUL SILO"};
+        }
+
+        // split line: format looks like "1 13783212 ..." all separated by whitespace
         auto w_strList = w_Line2look4.split(" ");
         if( w_strList.first().toInt() == 1) // cmd number usually 1
         {
-          if( w_strList[1].toLong() !=0 ) // succeed
+          // you could check if it's all digits?
+          if( w_strList[1].toLong() != 0 ) // succeed
           {
+            // product number
             w_bdFields.m_prodCode = w_strList[1].toLong();
           }
         }
 
         // Need  to do before duplicate, because product no is 1 (most time)
         // and sometimes silo number is 1, if we duplicate we lose silo no
-        auto w_siloNo = w_strList.back(); // silo number
-        w_bdFields.m_silo = w_siloNo;
+
+        // before proceeding, check if its already assigned a value
+        if( w_bdFields.m_silo.isEmpty())
+        {
+          // also 4-A ... is another type of string
+          auto w_siloNo = w_strList.back(); // silo number
+          w_bdFields.m_silo = w_siloNo;
+        }
 
         // remove white space
         w_strList.removeDuplicates();
@@ -121,24 +145,96 @@ namespace bdAPI
           w_strList.pop_front();
         }
         
-        // check 'TM' pos in the whole
-        auto w_idxTM = w_strList.indexOf(QRegExp{ QString{"TM"} });
-        QStringList w_descrProd; w_descrProd.reserve(w_strList.size());
-        std::copy( w_strList.cbegin(), w_strList.cbegin()+w_idxTM, std::back_inserter(w_descrProd));
-        // Next line of prod descr
+        QStringList w_descrProd;
+        auto w_idxTON_TM = 0;
+        auto cc = w_strList.indexOf(QRegExp{ QString{ "TM" } });
+//         if( aCmdVec.hasTM_TON())
+//         {
+          // check 'TM' pos in the whole
+          if( w_strList.indexOf(QRegExp{ QString{ "TM" } }) !=-1)
+          {
+            w_idxTON_TM = w_strList.indexOf(QRegExp{ QString{"TM"} });
+            // check
+            w_descrProd.reserve(w_strList.size());
+            std::copy(w_strList.cbegin(), w_strList.cbegin() + w_idxTON_TM, std::back_inserter(w_descrProd));
+          }
+          else if (w_strList.indexOf(QRegExp{ QString{ "TON" } })!=1)
+          {
+            w_idxTON_TM = w_strList.indexOf(QRegExp{ QString{ "TON" } });
+            w_descrProd.reserve(w_strList.size());
+            std::copy(w_strList.cbegin(), w_strList.cbegin() + w_idxTON_TM, std::back_inserter(w_descrProd));
+          }
+          else
+          {
+            QMessageBox w_msg;
+            w_msg.setText(QString{"U/M field not valid"});
+            w_msg.exec();
+          }
+      //  }
+
+        // Next line of prod descr (second line)
         auto w_nextLineDescr = w_cmdIter.next();
+        // check if second line is empty
+        if( w_nextLineDescr.isEmpty())
+        {
+          w_bdFields.m_produit = w_descrProd.join(QString{ " " });
+          auto w_qtyOrdered = w_strList[w_idxTON_TM + 1];
+          w_bdFields.m_qty = w_qtyOrdered.toFloat();
+          break;
+        }
+
+        // temporary fix for testing 
+        BoDucProDescrArea w_testArea{ QString{w_Line2look4}, QString{w_nextLineDescr} };
+        
+        // 
+        if( w_testArea.isSecondLineEndsWithSR())
+        {
+          // stop and we have all information
+          w_bdFields.m_produit = w_descrProd.join(QString{ " " });
+
+          auto w_qtyOrdered = w_strList[w_idxTON_TM + 1];
+          w_bdFields.m_qty = w_qtyOrdered.toFloat();
+
+          break;// we are done!
+        }
+
+        // ...
+        if( w_testArea.isSecondLineAllDigits())
+        {
+          // stop and we have all information
+          w_bdFields.m_produit = w_descrProd.join(QString{ " " });
+
+          auto w_qtyOrdered = w_strList[w_idxTON_TM + 1];
+          w_bdFields.m_qty = w_qtyOrdered.toFloat();
+
+          break;// we are done!
+        }
+
         if( !w_nextLineDescr.contains(QString{ "Vivaco" }) || 
             !w_nextLineDescr.contains(QString{ "Notes" }) || !w_nextLineDescr.contains(QString{ "Info" }))
         {
-          w_descrProd.push_back(w_nextLineDescr);
+          if( w_nextLineDescr.contains(QString{"SILO"}))
+          {
+            auto w_spltStr = w_nextLineDescr.split(QString{" "});
+            w_spltStr.removeDuplicates();
+            w_spltStr.pop_back();
+            auto w_cmpltStr = w_spltStr.join(QString{ " " });
+            w_descrProd.push_back(w_cmpltStr);
+          }
+          else
+          {
+            w_descrProd.push_back(w_nextLineDescr);
+          }
         }
 
         auto w_prodDescrCmplt = w_descrProd.join( QString{ " " }); // whole descr.
         w_bdFields.m_produit = w_prodDescrCmplt;
         
    //     w_strList.pop_back(); original
-        auto w_qtyOrdered = w_strList[w_idxTM+1];
+        auto w_qtyOrdered = w_strList[w_idxTON_TM+1];
         w_bdFields.m_qty = w_qtyOrdered.toFloat();
+
+     //   delete w_testArea;
 
         // 1 1234567687 ....
 //         if (std::isdigit(w_asd[0], std::locale()))
@@ -157,8 +253,8 @@ namespace bdAPI
 
           // call prodDecription algo or parser/reader
 //           w_boducReader->readProdDescr(w_prdoDescr, aBoDucField); // as it use to be in csv format
-//           break;
-      }
+           break;
+      }//if
     }//while-loop
 
     return w_bdFields;

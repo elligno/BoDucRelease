@@ -21,8 +21,33 @@
 // } // End of namespace
 
 AnalyzerBoxWidget::AnalyzerBoxWidget( QWidget* parent /*= Q_NULLPTR*/) 
-: QWidget(parent)
+: QWidget(parent),
+  m_pdfFilesFolder{QDir::current()},
+  m_csvFilesFolder{ QDir::current() }
 {
+  // setting folder path
+  auto w_mypdfPathBefore = m_pdfFilesFolder.absolutePath();
+  auto checkCurrFolder = QDir::currentPath();
+  auto dirName = m_pdfFilesFolder.dirName();
+  if( !m_pdfFilesFolder.cd(QString{ "PDF Files" }))
+  {
+    // Message to user that we cannot 
+    QMessageBox w_msgBox;
+    w_msgBox.setText(QString{ "PDF folder not accessible" });
+    w_msgBox.exec();
+  }
+  auto w_mypdfPathAfter = m_pdfFilesFolder.absolutePath();
+
+  if( !m_csvFilesFolder.cd(QString{ "CSV Files" }))
+  {
+    // Message to user that we cannot 
+    QMessageBox w_msgBox;
+    w_msgBox.setText(QString{ "CSV folder not accessible" });
+    w_msgBox.exec();
+  }
+  
+  auto checkcsvFolder = m_csvFilesFolder.absolutePath();
+
   QGroupBox* w_rowButtonsBoxLayout = createAnalyzerBox();
   QHBoxLayout* w_layout = new QHBoxLayout;
   w_layout->addWidget(w_rowButtonsBoxLayout);
@@ -406,70 +431,34 @@ void AnalyzerBoxWidget::loadRPdfFiles()
 {
   using namespace bdAPI;
 
-  // renaming file name?? (removed white space)
+  // check if cmd container is empty and ready to take new cmd
+  if( !m_reportCmd.empty())
+  {
+    m_reportCmd.clear(); // reserve allocate memory (efficient) 
+  }
+
+  // removed white space in file name
   removeWhiteSpaceFromFileName();
 
   // use the current path which is PDF Files folder
   // CSV Folder is at the same level 
   QStringList w_filesName = QFileDialog::getOpenFileNames(this, tr("Open File"),
-    QDir::currentPath(),
-    tr("Text (*.txt *.csv *.pdf)"));
+    m_pdfFilesFolder.absolutePath(),
+    //QString(R"(F:\EllignoContract\BoDuc\QtTestGui\BoDucReportCreator\BoDucReportCreator\PDF Files)"),
+    tr("Text (*.csv *.pdf)"));
  
-  // what for??
-  QStringList w_listOfFilesToExtractData;
-  w_listOfFilesToExtractData.reserve(50);
-    
-  // converting pdf to csv format
-  //NOTE w_fileName 
-  QStringListIterator w_dirFilesIter{ w_filesName };
-  while (w_dirFilesIter.hasNext())
+//   QMessageBox msgBox;
+//   msgBox.setText("Ready to convert to CSV.");
+//   msgBox.exec();
+
+  // returns the list of csv files (csv file contains command order (1.*))
+  auto w_listOfFilesToExtractData = convertPdf2Csv(std::move(w_filesName));
+
+  if( w_listOfFilesToExtractData.size()==0)
   {
-    // ...
-    const auto& w_file2Proceed = w_dirFilesIter.next();
-
-    //QFile w_file2Process{ w_file2Proceed };
-    QFileInfo myFilename{ QFile{ w_file2Proceed } };
-    auto w_file2Proceed1 = myFilename.fileName();
-    auto& w_absFilePath = myFilename.absolutePath();
-    const auto w_pdfFileAndPath = myFilename.absoluteFilePath();
-    const auto w_fileExt = myFilename.completeSuffix(); // shall be pdf, "." not included
-
-//    w_absFilePath.replace( QRegExp("PDF"), "CSV");
-   // QString w_csvFilepath = w_absFilePath;
-    if (w_absFilePath.contains("PDF", Qt::CaseInsensitive))
-      // need to change path to CSV
-      w_absFilePath.replace(QRegExp("PDF"), "CSV");
-
-    // check if the ext is pdf
-    // replace PDF by CSV (exact match) in the path (need to search for string)
-    // check if contains PDF, the replace
-    //myStr.replace(QRegExp("PDF", "CSV");
-    // now add the "csv" extension
-   // QString s = "PDF";
-   // s.replace(QRegExp("PDF"), "CSV");
-
-    auto w_len = w_file2Proceed1.length();
-    const QString w_char2Repl = "csv";
-    auto& w_filecsv = w_file2Proceed1.replace(w_file2Proceed1.length() - 3, 3, QString("csv"));
-
-    //w_csvFilename += QString("/") + QString(".csv");
-    w_absFilePath += QString("/") + w_filecsv; // complete file name (full path) 
-
-    // add it to the list
-    w_listOfFilesToExtractData.push_back(std::move(w_absFilePath));
-  }
-
-  QStringListIterator w_dirFilesItertest{ w_filesName };
-  while(w_dirFilesItertest.hasNext())
-  {
-    const auto& w_file2Proceedtest = w_dirFilesItertest.next();
-    //QFile w_file2Process{ w_file2Proceed };
-    QFileInfo myFilenametest{ QFile{ w_file2Proceedtest } };
-    const auto w_file2Proceed1test = myFilenametest.fileName();
-    QProcess cmd;
-    const QString myProc = "cmd.exe /c BoDucRPdfscript.bat " + w_file2Proceed1test;
-    //Run it!
-    cmd.startDetached(myProc);
+    QMessageBox msgBox;
+    msgBox.setText("List of convert to CSV is empty.");
+    msgBox.exec();
   }
 
 #if 0
@@ -502,40 +491,94 @@ void AnalyzerBoxWidget::loadRPdfFiles()
 //     QDir::currentPath(),
 //     tr("Text (*.txt *.csv *.pdf)"));
 
-  // debugging purpose (not sure what it means?)
-  std::vector<bdAPI::QBoDucFields> w_reportCmd;
+//     QMessageBox msgBox4;
+//     msgBox4.setText("Processing text Cmd.");
+//     msgBox4.exec();
 
+    // Reading csv file
   QStringListIterator w_listCmdFiles{ w_listOfFilesToExtractData };
   while( w_listCmdFiles.hasNext())
   {
     // file under process
     QFile w_currCmdFile{w_listCmdFiles.next()};
     
+//     QMessageBox msgBox5;
+//     msgBox5.setText("Read Cmd starting.");
+//     msgBox5.exec();
+
     // File that contains 1 or more command to proceed (data to extract)
-    BoDucFileListCmdTxt w_listFileCmdText = BoDucCmdFileReader::readFile(w_currCmdFile);
+    BoDucFileListCmdTxt w_bdFileListCmdTxt{ w_currCmdFile };
+    if( w_bdFileListCmdTxt.open())
+    {
+      w_bdFileListCmdTxt.readCmdFile();
+      w_bdFileListCmdTxt.close();
+    }
+    else // couldn't open last file
+    {
+      continue; // next in the list
+    }
+
+    //bool w_listFileCmdText = BoDucCmdFileReader::readFile(w_currCmdFile);
     
+//     QMessageBox msgBox6;
+//     msgBox6.setText("Read Cmd done.");
+//     msgBox6.exec();
+
     // sanity check
-    const auto w_nbCmdThisFile = w_listFileCmdText.nbOfCmd();
-    const auto w_nameCmdFile = w_listFileCmdText.filename();
+    const auto w_nbCmdThisFile = w_bdFileListCmdTxt.nbOfCmd();
     
+//     QMessageBox msgBox11;
+//     msgBox11.setText(QString{ "Nb of Cmd is " } + QString::fromStdString(std::to_string(w_nbCmdThisFile)));
+//     msgBox11.exec();
+
+    const auto w_nameCmdFile = w_bdFileListCmdTxt.filename();
+
+//     QMessageBox msgBox12;
+//     msgBox12.setText(QString{ "Cmd Filename is " } + QString{ w_nameCmdFile });
+//     msgBox12.exec();
+
     // retrieve first command of the file (debugging purpose, don't need to do that)
-    const auto w_firstCmdTxt = w_listFileCmdText.first();
+    const auto w_firstCmdTxt = w_bdFileListCmdTxt.first();
+//     QMessageBox msgBox13;
+//     msgBox13.setText("Read First Cmd.");
+//     msgBox13.exec();
+    
     if( w_firstCmdTxt.isEmpty()) // && w_firstCmdTxt.hasTransporteurNameValid(glisTransporteur)
     {
+      QMessageBox msgBox;
+      msgBox.setText("First Cmd Text is empty.");
+      msgBox.exec();
       continue;
     }
 
     // debugging purpose
 //    std::vector<bdAPI::QBoDucFields> w_reportCmd;
-    QVectorIterator<BoDucCmdText> w_iterCmdTxt = w_listFileCmdText.getIterator();
+    QVectorIterator<BoDucCmdText> w_iterCmdTxt = w_bdFileListCmdTxt.getIterator();
     while( w_iterCmdTxt.hasNext())
     {
+//       QMessageBox msgBox7;
+//       msgBox7.setText("Extract text Cmd started.");
+//       msgBox7.exec();
+
       // Parse file to extract command data
       bdAPI::BoDucParser w_fileParser( bdAPI::BoDucParser::eFileType::rcsv);
       auto w_bdField = w_fileParser.extractData( w_iterCmdTxt.next());
+      if( w_bdField == QBoDucFields{}) //means it empty, didn't process this command
+      {
+        continue; // go next one
+      }
+
       m_reportCmd.push_back(w_bdField); // ctor convert BoDucField to QBoDucField
+
+//       QMessageBox msgBox6;
+//       msgBox6.setText("Extract text Cmd done.");
+//       msgBox6.exec();
     }
    }//while-loop
+
+//   QMessageBox msgBox1;
+//   msgBox1.setText("PDF Cmd read done.");
+//   msgBox1.exec();
 
   if( m_reportCmd.size() < m_reportCmd.capacity())
   {
@@ -545,6 +588,126 @@ void AnalyzerBoxWidget::loadRPdfFiles()
   // notify that new commands has been loaded 
   emit commandLoaded();
 
+}
+
+QStringList AnalyzerBoxWidget::convertPdf2Csv( QStringList&& aFilesName)
+{
+  // use the current path which is PDF Files folder
+  // CSV Folder is at the same level 
+//   QStringList w_filesName = QFileDialog::getOpenFileNames(this, tr("Open File"),
+//     QDir::currentPath(),
+//     tr("Text (*.txt *.csv *.pdf)"));
+
+  // what for??
+  QStringList w_listOfFilesToExtractData;
+  w_listOfFilesToExtractData.reserve(50);
+
+  // converting pdf to csv format
+  //NOTE w_fileName 
+  QStringListIterator w_dirFilesIter{ aFilesName };
+  while (w_dirFilesIter.hasNext())
+  {
+    // complete file name and path
+    const auto& w_file2Proceed = w_dirFilesIter.next();
+
+    //QFile w_file2Process{ w_file2Proceed };
+    QFileInfo myFilename{ QFile{ w_file2Proceed } };
+    auto w_file2Proceed1 = myFilename.fileName();
+    auto& w_absFilePath = myFilename.absolutePath();
+    const auto w_pdfFileAndPath = myFilename.absoluteFilePath();
+    const auto w_fileExt = myFilename.completeSuffix(); // shall be pdf, "." not included
+
+    // sanity check
+    QDir w_pdfPathFile{ w_file2Proceed };
+//     if( QDir{ w_absFilePath } == m_pdfFilesFolder)
+//     {
+//       // Fine that's what we want for our test
+//       QMessageBox msgBox;
+//       msgBox.setText(QString{ "PDF file path ok." });
+//       msgBox.exec();
+//     }
+
+    // w_absFilePath.replace( QRegExp("PDF"), "CSV");
+    // QString w_csvFilepath = w_absFilePath;
+    if( w_absFilePath.contains("PDF", Qt::CaseInsensitive))
+      // need to change path to CSV
+      w_absFilePath.replace(QRegExp("PDF"), "CSV");
+
+//     if( QDir{ w_absFilePath } == m_csvFilesFolder)
+//     {
+//       // Fine that's what we want for our test
+//       QMessageBox msgBox;
+//       msgBox.setText(QString{ "CSV file path ok." });
+//       msgBox.exec();
+//     }
+
+    // check if the extension is pdf
+    // replace PDF by CSV (exact match) in the path (need to search for string)
+    // check if contains PDF, the replace
+    //myStr.replace(QRegExp("PDF", "CSV");
+    // now add the "csv" extension
+    // QString s = "PDF";
+    // s.replace(QRegExp("PDF"), "CSV");
+
+    auto w_len = w_file2Proceed1.length();
+    const QString w_char2Repl = "csv";
+    auto& w_filecsv = w_file2Proceed1.replace(w_file2Proceed1.length() - 3, 3, QString("csv"));
+
+    //w_csvFilename += QString("/") + QString(".csv");
+    QString w_csvFilenameAndpath = m_csvFilesFolder.absolutePath() + QString("/") + w_filecsv;
+    w_absFilePath += QString("/") + w_filecsv; // complete file name (full path) 
+
+    // add it to the list
+    w_listOfFilesToExtractData.push_back(std::move(w_absFilePath));
+  }
+
+//   QMessageBox msgBox;
+//   msgBox.setText("CSV files name stored.");
+//   msgBox.exec();
+
+  // Design Note
+  //  Don't need to iterate over all files, i think we can pass QStringList
+  //  as argument and then let R script to loop over all files and convert it.
+  //  According to Qt documentation, don't need to use startDetached() instead 
+  //  use the start() method.  ---> start (cmd, QStringlist) that's it!!! 
+  //  Not when i close the app if this process is kill? 
+
+//   QMessageBox msgBox2;
+//   msgBox2.setText("Processing to convert to CSV.");
+//   msgBox2.exec();
+
+  // Reference https://stackoverflow.com/questions/2622864/start-a-process-using-qprocess
+  auto w_check = aFilesName.join(QChar{ ' ' });
+
+  QStringListIterator w_dirFilesItertest{ aFilesName };
+  while (w_dirFilesItertest.hasNext())
+  {
+    const auto& w_file2Proceedtest = w_dirFilesItertest.next();
+   
+    //QFile w_file2Process{ w_file2Proceed };
+    QFileInfo myFilenametest{ QFile{ w_file2Proceedtest } };
+    const auto w_file2Proceed1test = myFilenametest.fileName();
+    QProcess cmd{this};
+    const QString myProc = "cmd.exe /c BoDucRPdfscript.bat " + w_file2Proceed1test;
+    //Run it!
+    cmd.startDetached(QString{ "cmd.exe /c BoDucRPdfscript.bat " + w_file2Proceed1test }/*myProc*/); //working
+    //QProcess::execute(QString{ "cmd.exe /c BoDucRPdfscript.bat " + w_file2Proceed1test }/*myProc*/); //working
+    cmd.waitForFinished();
+   // cmd.terminate();
+    //BoDucPdfTextExtract.R
+   // const QString w_procmdString = "C:\\Program Files\\R\\R-4.1.1\\bin\\x64\\Rscript.exe BoDucRscriptConverter.R " + w_file2Proceed1test;
+   // cmd.startDetached(w_procmdString);
+
+
+   // auto retCode = QProcess::execute(myProc, w_filesName);
+   // QProcess::start(myProc);
+  }
+
+//   QMessageBox msgBox3;
+//   msgBox3.setText("About to exit convert CSV.");
+//   msgBox3.exec();
+
+  return w_listOfFilesToExtractData;
 }
 
 void AnalyzerBoxWidget::loadRPdfFiles_proto()
@@ -784,13 +947,14 @@ void AnalyzerBoxWidget::loadCsvFiles()
 
 void AnalyzerBoxWidget::removeWhiteSpaceFromFileName()
 {
-  QString myjbPath = QDir::currentPath();
-  QDir myDir{ myjbPath };
-  auto jj = myDir.exists(QString{ "PDF Files" });
+//   QString myjbPath = QDir::currentPath();
+//   QDir myDir{ myjbPath };
+//   auto jj = myDir.exists(QString{ "PDF Files" });
 
   // remove white space from file name
-  QString dirName = QFileDialog::getExistingDirectory(0, "Open Directory", QDir::currentPath(), QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-  QDir directory(dirName);
+//  QString dirName = QFileDialog::getExistingDirectory(0, "Open Directory", QDir::currentPath(), QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+
+  QDir directory(m_pdfFilesFolder.dirName());
 
   QStringList filters;
   filters << "*.pdf";
@@ -798,7 +962,7 @@ void AnalyzerBoxWidget::removeWhiteSpaceFromFileName()
 
   QStringList changedFiles, failedFiles;
 
-  foreach(QString filename, files)
+  foreach( QString filename, files)
   {
     //QFileInfo info(filename);
     QFileInfo info(directory.absolutePath() + "/" + filename);
@@ -818,6 +982,7 @@ void AnalyzerBoxWidget::removeWhiteSpaceFromFileName()
     }
   }
 }
+
 //   QProcess cmd;
 //   const QString myProc = "cmd.exe /c BoDucRPdfscript.bat " + MainWindow::getWorkingConfiguration();     
 //   QString sOldPath = QDir::currentPath();
@@ -905,6 +1070,7 @@ void AnalyzerBoxWidget::settingPath()
 
 #endif // 0
 
+  // not sure what we do here
   removeWhiteSpaceFromFileName();
 
   QStringList w_filesName = QFileDialog::getOpenFileNames(this, tr("Open File"),
@@ -918,6 +1084,7 @@ void AnalyzerBoxWidget::settingPath()
 //   QFileInfo myFilename2{ w_file2Process2 };
 //   const auto w_fileName2 = myFilename2.fileName();
 
+#if 0
   QStringListIterator w_dirFilesIter{ w_filesName };
   while (w_dirFilesIter.hasNext())
   {
@@ -928,9 +1095,26 @@ void AnalyzerBoxWidget::settingPath()
     QProcess cmd;
     //  auto myFile = QString("Martincoco200957-200969.pdf");
     const QString myProc = "cmd.exe /c BoDucRPdfscript.bat " + w_file2Proceed1;
+
+    // Should use start instead??
     //Run it!
     cmd.startDetached(myProc);
-  }
+  }//while  
+#endif // 0
+
+//    QString sOldPath = QDir::currentPath();
+//    QString myPath = MainWindow::getWorkingDirectory();
+//    QDir::setCurrent(myPath);
+  QProcess w_cmdProc;
+  //w_cmdProc.setArguments(w_filesName);
+  //  auto myFile = QString("Martincoco200957-200969.pdf");
+ // const QString w_procmdString = "cmdProc.exe /c C:\\Program Files\\R\\R-4.1.1\\bin\\x64\\Rscript.exe BoDucRscriptConverter.R";
+  const QString w_procmdString = "w_cmdProc.exe /c C:\\Program Files\\R\\R-4.1.1\\bin\\x64\\Rscript.exe BoDucPdfTextExtract.R " + QString("valleroy562610817.pdf");
+  w_cmdProc.startDetached( w_procmdString/*, QStringList() << "valleroy562610817.pdf"*/);
+  int jj = 2;
+  //w_cmdProc.start(w_procmdString, w_filesName);
+
+
 #if 0
   for (auto i=0; i<2;++i)
   {

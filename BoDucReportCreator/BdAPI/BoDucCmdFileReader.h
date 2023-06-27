@@ -38,7 +38,7 @@ namespace bdAPI
       QString cmdSep = QString("Signature"));
 
     // just a test for future dev
-    static BoDucFileListCmdTxt readFile( QFile& aFileAndPath);
+    static BoDucFileListCmdTxt BoDucCmdFileReader::readFile(QFile& aFileAndPath);
 
   private:
     static mapIntVecstr readFile( const std::string& aFileAnPath,

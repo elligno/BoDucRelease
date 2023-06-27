@@ -2,28 +2,41 @@
 #include <QDir>
 #include <QFile>
 #include <QTextStream>
+#include <QMessageBox>
+
 // App include
 #include "BoDucBaseReport.h"
 
 namespace bdAPI {
 
-  BoDucBaseReport::BoDucBaseReport( QFile& aRepFile)
-  : m_cmdReport(aRepFile)
+  BoDucBaseReport::BoDucBaseReport( const QFile& aRepFile)
+  : m_cmdReport(aRepFile.fileName())
   {
   }
+
   void BoDucBaseReport::createReport( const std::vector<bdAPI::BoDucFields>& aData2Report)
   {
     // maybe in ctor, would make more since we don't to set 
     // working folder each time we create a report. 
-    setReportWorkingFolder();
+  //  setReportWorkingFolder();
+
+    // sanity check (debug purpose)
+//     auto checkFileName = m_cmdReport.fileName();
+//     auto checkDirName = m_reportFolder.absolutePath();
 
     // construct a file 
     QFileInfo w_fileRep( m_reportFolder, m_cmdReport.fileName());
 
+//     QMessageBox w_msg;
+//     w_msg.setText(QString{"Ready to write to Report file at location "}+w_fileRep.absoluteFilePath());
+//     w_msg.exec();
+// 
+//     auto check123 = w_fileRep.absoluteFilePath();
+
     // file doesn't exist
     if (!m_reportFolder.exists(m_cmdReport.fileName()))
     {
-      QString w_filePath = w_fileRep.absoluteFilePath();
+   //   QString w_filePath = w_fileRep.absoluteFilePath();
 
       // create a new file with the given name
       QFile w_data(w_fileRep.absoluteFilePath());
@@ -75,6 +88,12 @@ namespace bdAPI {
     }
   }
 
+  void BoDucBaseReport::createReport( std::vector<bdAPI::BoDucFields>&& aData2Report)
+  {
+    auto w_vecOfData = std::move(aData2Report);
+  }
+
+#if 0
   void BoDucBaseReport::setReportWorkingFolder()
   {
     //TODO: need to set working folder outside of the createDataReport method
@@ -112,6 +131,6 @@ namespace bdAPI {
       }
     }
   }
+#endif
 
 } // End of namespace
-

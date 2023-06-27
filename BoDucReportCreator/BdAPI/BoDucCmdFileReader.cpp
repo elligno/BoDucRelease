@@ -203,8 +203,8 @@ namespace bdAPI {
     return w_mapintVec;
   }
 
-  // not in use at the  moment, just a test 
-  BoDucFileListCmdTxt BoDucCmdFileReader::readFile( QFile& aFileAndPath)
+  // not in use at the  moment, just a test ??? i think we are using it!!!
+  BoDucFileListCmdTxt BoDucCmdFileReader::readFile(QFile& aFileAndPath)
   {
     // debugging stuff
     QFileInfo w_fileInfo(aFileAndPath);
@@ -216,6 +216,10 @@ namespace bdAPI {
  //   QString w_remChar = ","; 
     if( aFileAndPath.open( QFile::ReadOnly | QFile::Text))
     {
+      QMessageBox msgBox;
+      msgBox.setText("Open CSV File.");
+      msgBox.exec();
+
       QTextStream w_readText(&aFileAndPath);
       while( !w_readText.atEnd())
       {
@@ -236,11 +240,16 @@ namespace bdAPI {
 
         if( w_line.contains( "Signature"))
         { 
-          // move semantic since we don't need this command
+          // move semantic since we don't need this command anymore
           w_bdFileListCmdTxt.add( std::move(w_bdCmdTxt));
         }
       }//while-loop
-    }
+      QMessageBox msgBox1;
+      msgBox1.setText("Close CSV File.");
+      msgBox1.exec();
+      aFileAndPath.close();
+
+    }//if
 
     // return list of cmd as text format
     return w_bdFileListCmdTxt;
@@ -265,7 +274,7 @@ namespace bdAPI {
       while( !w_readText.atEnd())
       {
         auto w_line = w_readText.readLine();
-        w_bdCmdTxt.push_line( w_line.toStdString());
+        w_bdCmdTxt.push_line( std::move(w_line));
         if( w_line.contains(cmdSep))
         {
           // NOTE: Should also check for "tonnage" tags such as "TM" and "TON"

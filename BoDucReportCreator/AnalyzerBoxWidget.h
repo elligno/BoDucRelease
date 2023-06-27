@@ -29,6 +29,7 @@ public:
   /** */
   AnalyzerBoxWidget( QWidget* parent = Q_NULLPTR);
 
+  // NOTE: maybe shall return a copy instead of reference, use move semantic when return by copy
   const std::vector<bdAPI::BoDucFields>& getCommandLoaded() const { return m_reportCmd; }
 private:
   /** Top group box, actually it's the original buttons layout
@@ -43,8 +44,11 @@ private:
     //void highlightChecked(QListWidgetItem* item);
     /** Pdf Miner converter*/
     void loadPdfFiles();
+
     /** Pdf R pdftools converter*/
     void loadRPdfFiles();
+    
+    // ??? not sure if we keep it
     void loadRPdfFiles_proto();
     /** */
     void loadCsvFiles();
@@ -57,5 +61,10 @@ private:
   std::vector<bdAPI::BoDucFields> m_reportCmd;
   eCptyMode m_capacityLoad = eCptyMode::normal; /**< set capacity load (normal/degel)*/
 
+  QStringList convertPdf2Csv(QStringList&& w_filesName);
   void removeWhiteSpaceFromFileName();
+
+  // Folder for data processing 
+  QDir m_pdfFilesFolder;
+  QDir m_csvFilesFolder;
 };

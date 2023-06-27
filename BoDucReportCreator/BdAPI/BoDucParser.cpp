@@ -3,6 +3,7 @@
 #include <iostream>
 // Qt include
 #include <QFileInfo>
+#include <QMessageBox>
 // boost includes
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp> // string algorithm
@@ -120,6 +121,11 @@ namespace bdAPI
     using namespace std;
     using BoDucDataAlgo = unique_ptr<ExtractDataAlgorithm>;
 
+//     QMessageBox w_msg;
+//     w_msg.setText(QString{ "FillBoducFields begin" });
+//     w_msg.exec();
+
+
     BoDucDataAlgo w_bdataAlgo = nullptr;  //make_unique<VictoBonLivraison>();
     if (eFileType::csv == getFileExt())
     {
@@ -141,14 +147,32 @@ namespace bdAPI
       return QBoDucFields {}; // or set a default algo
     }
 
+//     QMessageBox w_msg11;
+//     w_msg11.setText(QString{ "Ready to fill" });
+//     w_msg11.exec();
+
+
     // filling the BoDuc struct	
-    QBoDucFields w_boducStruct;
+    QBoDucFields w_boducStruct {};
     if( w_bdataAlgo != nullptr)
     {
-      w_boducStruct = w_bdataAlgo->fillBoDucFields( aCmdTxt);
+//       QMessageBox w_msg;
+//       w_msg.setText(QString{ "FillBoducFileds..." });
+//       w_msg.exec();
+
+      // these 2 code are considered. Sometimes we have "S/25k"
+      // make the application crash. Ask to Francois about this!!
+      if( aCmdTxt.hasTM_TON())
+      {
+        w_boducStruct = w_bdataAlgo->fillBoDucFields( aCmdTxt);
+      }
+
+//       QMessageBox w_msg1;
+//       w_msg1.setText(QString{ "FillBoducFileds...end" });
+//       w_msg1.exec();
     }
 
-    return w_boducStruct;  // QBoDucFields{};
+    return w_boducStruct;
   }
 
 	bool BoDucParser::useTM( const std::vector<std::string>& aVecOfCmdLines)

@@ -19,7 +19,7 @@ namespace bdAPI
     signed long m_prodCode;   /**< product code (digits)*/
     QString m_produit;        /**< product description*/
     float m_qty;             // better to set as a string
-    // not always an integer (can be 2&3, 4-A and a string such as "Un seul silo")
+    // not always an integer (can be 2&3, 4-A and a string such as "UN SEUL SILO")
     QString m_silo;           /**< silo number*/
 
     friend bool operator== (const QBoDucFields& aField1, const QBoDucFields& aField2)

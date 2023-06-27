@@ -128,12 +128,17 @@
     <ClCompile Include="BdAPI\BoDucBonLivraison.cpp" />
     <ClCompile Include="BdAPI\BoDucBonLivraisonReport.cpp" />
     <ClCompile Include="BdAPI\BoDucCmdFileReader.cpp" />
+    <ClCompile Include="BdAPI\BoDucCmdText.cpp" />
     <ClCompile Include="BdAPI\BoDucFields.cpp" />
     <ClCompile Include="BdAPI\BoDucParser.cpp" />
     <ClCompile Include="BdAPI\BoDucReaderfix.cpp" />
     <ClCompile Include="BdAPI\BoDucUtility.cpp" />
-    <ClCompile Include="BdAPI\PdfMinerAlgo.cpp" />
-    <ClCompile Include="BdAPI\PdfMinerReader.cpp" />
+    <ClCompile Include="BdAPI\PdfMinerAlgo.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="BdAPI\PdfMinerReader.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="BdAPI\AcrobatCsvAlgorithm.cpp" />
     <ClCompile Include="BdAPI\RCsvAlgorithm.cpp" />
     <ClCompile Include="BdAPI\VictoReader.cpp" />
@@ -173,6 +178,7 @@
     <ClInclude Include="BdAPI\PdfMinerReader.h" />
     <ClInclude Include="BdAPI\AcrobatCsvAlgorithm.h" />
     <ClInclude Include="BdAPI\QBoDucFields.h" />
+    <QtMoc Include="BdAPI\QBoDucProdAnalyzer.h" />
     <ClInclude Include="BdAPI\RCsvAlgorithm.h" />
     <ClInclude Include="BdAPI\VictoReader.h" />
     <ClInclude Include="GeneratedFiles\ui_BoDucReportCreator.h" />

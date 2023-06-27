@@ -14,15 +14,15 @@
 #include <QFileInfo>
 #include <QVector>
 #include <QStringList>
+#include <QStringListIterator>
+
+//#include <QDir>
+// #include <QTextStream>
+// #include <QMessageBox>
 // boost include
-#include <boost/operators.hpp>
+//#include <boost/operators.hpp>
 // API package include
 #include "VictoReader.h"
-
-// forward declaration
-namespace bdAPI {
-class BoDucCmdIterator;
-}
 
 namespace bdAPI 
 {
@@ -42,45 +42,37 @@ namespace bdAPI
   public:
 
     using cmdLineIterator = boost::iterator_range<std::vector<std::string>::const_iterator>;
+
+    auto begin() { return m_qListStrCmd.begin(); }
+    auto end()   { return m_qListStrCmd.end();   }
+
+    auto cbegin() const { m_qListStrCmd.cbegin(); }
+    auto cend()   const { m_qListStrCmd.cend(); }
+
   public:
     // what about default, copy and assignment ctor (=default)
     BoDucCmdText() 
     { 
-      m_veCmdStr.reserve(50); 
       m_qListStrCmd.reserve(50); 
     }
 
     // default ctor will be ok
     BoDucCmdText( const BoDucCmdText& aOther) = default;
     BoDucCmdText& operator= ( const class BoDucCmdText& aOther) = default;
-    ~BoDucCmdText() = default;
+    //~BoDucCmdText() = default;  by doing this you disable move semantic
 
     // move semantic shall be supported
     BoDucCmdText( BoDucCmdText&& aOther)
-      : m_qListStrCmd(std::move(aOther.m_qListStrCmd)),
-      m_veCmdStr( std::move(aOther.m_veCmdStr))
+    : m_qListStrCmd(std::move(aOther.m_qListStrCmd))
     {}
-
-    void push_line( std::string&& aLine2Mv)
-    {
-      m_veCmdStr.push_back( std::move( aLine2Mv));
-//      m_qListStrCmd.push_back( std::move( QString(aLine2Mv.data())));
-    }
 
     void push_line( QString&& aLine2Mv)
     {
       m_qListStrCmd.push_back( std::move(aLine2Mv));
     }
 
-    void push_line( const std::string& aLine)
-    {
-      m_veCmdStr.push_back(aLine);
-  //    m_qListStrCmd.push_back( QString(aLine.data()));
-    }
-
     void pop_line()
     {
-      m_veCmdStr.pop_back();
       m_qListStrCmd.pop_back();
     }
 
@@ -89,30 +81,26 @@ namespace bdAPI
 
     // not sure about this one!!!
     QStringListIterator getQListIterator() const { return QStringListIterator(m_qListStrCmd);     }
-    cmdLineIterator getCmdLineIterator()   const { return boost::make_iterator_range(m_veCmdStr); }
+   // cmdLineIterator getCmdLineIterator()   const { return boost::make_iterator_range(m_veCmdStr); }
 
     // return a range based on line index (boost range)
-    std::vector<std::string> rangeOfLines( size_t begLine, size_t endLine)
-    {
-      // implement with the boost range library
-      //boost::iterator_range<std::vector<std::string>::const_iterator> cmd_range(m_veCmdStr.cbegin() + begLine, m_veCmdStr.cbegin() + endLine);
-
-      return std::vector<std::string>( m_veCmdStr.cbegin()+begLine, m_veCmdStr.cbegin()+endLine);
-    }
+//     QStringList rangeOfLines( size_t begLine, size_t endLine)
+//     {
+//       // implement with the boost range library
+//       //boost::iterator_range<std::vector<std::string>::const_iterator> cmd_range(m_veCmdStr.cbegin() + begLine, m_veCmdStr.cbegin() + endLine);
+// 
+//       return QStringList{ m_qListStrCmd.cbegin() + begLine, m_qListStrCmd.cbegin() + endLine };
+//     }
 
     std::vector<std::string>::size_type size() const
     {
       // number of lines for this command
-      return m_veCmdStr.size();
+      return m_qListStrCmd.size();
     }
 
     /** clear whole command */
     void clearCommand()
     {
-      if(!m_veCmdStr.empty())
-      {
-        m_veCmdStr.clear();
-      }
       if( !m_qListStrCmd.isEmpty())
       {
         m_qListStrCmd.clear();
@@ -123,22 +111,31 @@ namespace bdAPI
     * Our algorithm have been designed as taking std::vectorof string
     * but in our new architecture 
      According to Scott Myers be carefull when using such tricky stuff;*/
-    operator std::vector<std::string>() const { return m_veCmdStr; }
+    operator std::vector<QString>() const { return m_qListStrCmd.toVector().toStdVector(); }
 
     // not sure about those?? be carefull!! "TON" can be part of word like 'BROMPTON'
     // when checking for that given token, special care must be taken
     bool hasTM_TON() const
     {
-      using namespace boost::algorithm;
+//      using namespace boost::algorithm;
 
-      return !std::any_of( m_veCmdStr.cbegin(), m_veCmdStr.cend(),
-        [](const std::string& aStr) // check for the "TM" or "TON"
+      // first search for QString{ "Qty ordered" }
+      // when found it, go to next line and look for TN || TON
+      QStringListIterator w_lineIter{ m_qListStrCmd };
+      QString foundIt{};
+      do 
       {
+        foundIt = w_lineIter.next();
+      } while( !foundIt.contains( QString{ "Qty ordered" }));
+      
+//       return std::any_of(m_qListStrCmd.cbegin(), m_qListStrCmd.cend(),
+//         [](const QString& aStr) // check for the "TM" or "TON"
+//       {
         // check for a valid
         // "BROMPTON" contains "TON", we need some kind of mechanism
         // to check if this a valid code or a string contained 
-        return boost::contains( aStr, std::string("TM")) || boost::contains(aStr, std::string("TON"));
-      });
+        return w_lineIter.next().contains(QString{ "TM" }) || w_lineIter.next().contains(QString{ "TON" });
+//      });
     }
 
     // before extracting let's check so
@@ -178,60 +175,65 @@ namespace bdAPI
     }
 
     // compatibility with Qt 
-    QStringList asQStringList() const
+    QStringList getCmdList() const
     { 
-//       auto beg = m_veCmdStr.cbegin();
-//       auto end = m_veCmdStr.cend();
-//       while (beg!=end)
-//       {
-//         m_qListStrCmd.push_back( QString(*beg->data()));
-//         ++beg;
-//       }
-
       return m_qListStrCmd;
     }
 
-    std::vector<std::string> asStdVector() const { return m_veCmdStr; }
+    std::vector<QString> asStdVector() const { return m_qListStrCmd.toVector().toStdVector(); }
 
     bool isEmpty() const { return m_qListStrCmd.empty(); /*m_veCmdStr.empty();*/ }
+
     bool hasTokens( const std::initializer_list<std::string>& aListofTokens = { "Vivaco", "Notes", "Date" });
+    
+    // check any blank lines
     bool hasBlankLines() const
     {
-      return std::any_of( m_veCmdStr.cbegin(), m_veCmdStr.cend(),
-        [] (const std::string& aStr) -> bool
-      { return aStr.empty();
-      });
+      QStringList w_list2Check{ m_qListStrCmd };
+      // returns the number of lines removed
+      return (w_list2Check.removeAll(QString{ "" }) != 0);
     }
 
-    void removeBlankLine() // pdfMiner conversion insert blank line
+    void removeBlankLine() // pdfMiner conversion insert blank line ???
     {
-      m_veCmdStr.erase( std::remove_if( m_veCmdStr.begin(), m_veCmdStr.end(), // delete empty element
-        []( const std::string& s) // check if an empty string
-      {
-        return s.empty();
-      }), m_veCmdStr.cend());
-    }
-    
-    void shrinkIt() 
-    {
-      if( m_veCmdStr.capacity() > m_veCmdStr.size())
-      {
-        m_veCmdStr.shrink_to_fit();
-      }
-
-      // what about QStringList
-    }
-
-          std::string& operator[] ( int Idx)       { return m_veCmdStr[Idx]; }
-    const std::string& operator[] ( int Idx) const { return m_veCmdStr[Idx]; }
+      // number of lines removed
+      auto w_nblinesRem = m_qListStrCmd.removeAll(QString{ "" });
+     }
 
     // comparison operator (boost operator equality_comparable)
     // operator != is defined
     friend bool operator== ( const BoDucCmdText& aCmd1, const BoDucCmdText& aCmd2)
     {
-      // Placeholder
-      BoDucFields w_bdField1;
-      BoDucFields w_bdField2;
+      // Placeholder to check product code
+      BoDucFields w_bdField1 {}; // default all set to empty
+      BoDucFields w_bdField2 {}; // default all set to empty
+
+      // equal if they have the same Command tag CO123456
+      auto w_cmd1TxtIter = aCmd1.getQListIterator();
+      while( w_cmd1TxtIter.hasNext())
+      {
+        auto w_cmdLine = w_cmd1TxtIter.next();
+        if( w_cmdLine.contains(QRegExp{ "Date" })) // line token = "Date", line below contains COxxxxx command order
+        {
+          VictoReader w_prodCode;
+          w_prodCode.readProdCode( w_cmdLine.toStdString(), w_bdField1);
+          break; // don't need to go further, usually "Date" is at the beginning of the file
+        }
+      }//while-loop
+
+      auto w_cmd2txtIter = aCmd2.getQListIterator();
+      while( w_cmd2txtIter.hasNext())
+      {
+        auto w_cmdLine = w_cmd2txtIter.next();
+        if( w_cmdLine.contains(QRegExp{ "Date" })) // line token = "Date", line below contains COxxxxx command order
+        {
+            VictoReader w_prodCode;
+            w_prodCode.readProdCode(w_cmdLine.toStdString(), w_bdField2);
+            break;
+        }
+      }//while-loop
+
+      return (w_bdField1.m_prodCode == w_bdField2.m_prodCode);
 
       // NOTE compile error because in the for-loop we pass aCmd1 which is aBoDucCmdText
       //      doesn't support interface STL such as begin
@@ -258,21 +260,21 @@ namespace bdAPI
       }
       return (w_bdField1.m_prodCode == w_bdField2.m_prodCode);
 #endif
-      return false; // debugging purpose
+      //return false;  debugging purpose
     }
 
     // friend class to iterate through the text command
-    friend class BoDucCmdIterator;
+   // friend class BoDucCmdIterator;
 
   private:
     QStringList m_qListStrCmd;
-    std::vector<std::string> m_veCmdStr;
 
     // shall be in the BdApp class??? still use it?
     bool useTM( const std::vector<std::string>& aVecOfCmdLines)  { return true;  } //default value
     bool useTON( const std::vector<std::string>& aVecOfCmdLines) { return false; } // default value
   };
 
+#if 0
   /** Utility to traverse the BoDuc command text representation*/
   class BoDucCmdIterator
   {
@@ -287,6 +289,7 @@ namespace bdAPI
     int m_index;               /**< */
     BoDucCmdText& m_bdCmdTxt;  /**< */
   };
+#endif
 
   /** contains a list of command to file.
    * Usage
@@ -307,10 +310,11 @@ namespace bdAPI
     };
 
   public:
-    BoDucFileListCmdTxt( QFile& aFile /*eSrcType aSrctext = eSrcType::pdf2csv*/) 
-    : m_fileCmd(aFile), 
+  //  BoDucFileListCmdTxt() = default;
+    explicit BoDucFileListCmdTxt( QFile& aFile /*eSrcType aSrctext = eSrcType::pdf2csv*/) 
+    : m_fileCmd{ aFile },
       //m_fileName( QFileInfo(m_fileCmd).completeBaseName().toStdString()),
-      m_nbCmd(0) 
+      m_nbCmd{ 0 }
     {
       // not much to do for now
     }
@@ -323,16 +327,9 @@ namespace bdAPI
     } // debugging purpose
 
     // move semantic avoid copying large amount of data without creating temporary
-    void add( BoDucCmdText&& aCmdTxt)  
-    {
-     // m_listOfCmd2File.push_front(aCmdTxt);
-      // temporary, not sure if a forward list is appropriate for this task!
-      //m_listOfCmd2File.emplace_after( m_listOfCmd2File.before_begin(), aCmdTxt);
-      m_vecOfBDCmd.push_back( std::move(aCmdTxt));
-      ++m_nbCmd;
-    }
+    void add( BoDucCmdText&& aCmdTxt);
 
-    bool remove() { return false; } // based on command number
+    //bool remove() { return false; }  based on command number
 
     size_t nbOfCmd() const 
     {
@@ -373,6 +370,30 @@ namespace bdAPI
     { 
       return QVectorIterator<BoDucCmdText>( m_vecOfBDCmd); 
     }
+
+//     QMessageBox msgBox1;
+//     msgBox1.setText("Close CSV File.");
+//     msgBox1.exec();
+//     QMessageBox msgBox;
+//     msgBox.setText("Open CSV File.");
+//     msgBox.exec();
+
+    bool open() const
+    {
+      if( !m_fileCmd.open(QFile::ReadOnly | QFile::Text))
+      {
+        return false;
+      }
+      return true;
+    }
+
+    void close() const 
+    {
+      if( m_fileCmd.isOpen())
+        m_fileCmd.close();
+    }
+
+    void readCmdFile();
 
     // Iterator on BoDucCmdText must be supported (boost range iterator)
     // NO Qt iterator such as QVectorIterator

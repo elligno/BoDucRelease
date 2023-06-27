@@ -1,18 +1,19 @@
 // test our string algo
-#include <fstream>
-#include <sstream>
+// #include <fstream>
+// #include <sstream>
 // temporary for debug (to be removed)
-#include <deque>
-#include <boost/algorithm/string/split.hpp> // spitting algo
-#include <boost/algorithm/string.hpp> // string algorithm
+// #include <deque>
+// #include <boost/algorithm/string/split.hpp> // spitting algo
+// #include <boost/algorithm/string.hpp> // string algorithm
 // app inlcudes
 #include "BoDucReportCreator.h"
-#include "BdAPI/BoDucCmdFileReader.h"
+//#include "BdAPI/BoDucCmdFileReader.h"
 // Qt includes
 #include <QtWidgets/QApplication>
-#include <QStringBuilder>
-#include <QTextStream>
+// #include <QStringBuilder>
+// #include <QTextStream>
 
+#if 0
 void findTwoSeqWhiteSpace( const std::string& aString2Check, std::size_t& aEndFirstStr)
 {
   if (aString2Check.empty())
@@ -47,6 +48,7 @@ void findTwoSeqWhiteSpace( const std::string& aString2Check, std::size_t& aEndFi
 
   return;
 }
+#endif
 
 // ===================================================================
 //
@@ -54,11 +56,11 @@ void findTwoSeqWhiteSpace( const std::string& aString2Check, std::size_t& aEndFi
 //
 // ===================================================================
 
-std::initializer_list<std::string> glisTransporteur = { "NIR R-117971-3 TRSP CPB INC",
-"NIR R-117971-3 TRANSPORT CPB",
-"NIR R-117971-3 C.P.B.",
-"BODUC- ST-DAMASE",
-"NIR R-004489-2 TR. BO-DUC" };
+// std::initializer_list<std::string> glisTransporteur = { "NIR R-117971-3 TRSP CPB INC",
+// "NIR R-117971-3 TRANSPORT CPB",
+// "NIR R-117971-3 C.P.B.",
+// "BODUC- ST-DAMASE",
+// "NIR R-004489-2 TR. BO-DUC" };
 
 int main( int argc, char *argv[])
 {
