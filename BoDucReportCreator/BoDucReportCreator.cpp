@@ -93,7 +93,12 @@ namespace bdApp
     //  ReportFiles folder, not sure where it will be located
     //  maybe on the desktop?? 
 
+#if 0
     // set some environment variable (testing environment)
+    m_reportFolder.setCurrent(R"(C:\Users\user\BoDuc\ReportFiles)");
+    m_cmdReportFile.setReportWorkingFolder(m_reportFolder);
+#endif
+
     m_reportFolder.setCurrent(QDir::currentPath());
     m_reportFolder.cdUp();
 
@@ -262,6 +267,10 @@ namespace bdApp
 
     auto w_vecOfCmd = m_analyzerBox->getCommandLoaded();
     
+    QMessageBox msgBox11;
+    msgBox11.setText(QString{ "Size vecOfCmd is " } + QString::fromStdString(std::to_string(w_vecOfCmd.size())));
+    msgBox11.exec();
+    
     // write to report file (should it be update report)
     m_cmdReportFile.createReport( w_vecOfCmd);
 
@@ -279,8 +288,6 @@ namespace bdApp
     // signal sent about new commands added to report file
     QFileInfo w_reportFileInfo(m_reportFolder, m_reportFile.fileName());
     m_vectorOfCmd = bdAPI::BoDucUtility::loadCmdReportInVector(w_reportFileInfo.filePath());
-
-    std::cout;
   }
 
   // Next version of the command selection saving mechanism

@@ -1,4 +1,5 @@
-// C includes
+
+#include <Windows.h>// C includes
 #include <string.h>
 #include <stdlib.h>
 
@@ -22,9 +23,11 @@
 
 AnalyzerBoxWidget::AnalyzerBoxWidget( QWidget* parent /*= Q_NULLPTR*/) 
 : QWidget(parent),
-  m_pdfFilesFolder{QDir::current()},
-  m_csvFilesFolder{ QDir::current() }
+  m_pdfFilesFolder{QDir::current()}, // BoDuc PC -> R"(C:\Users\User\Documents\Boduc Transport\Email PDF attachments)"
+ // m_csvFilesFolder{R"(C:\Users\jean\OneDrive - Elligno Inc\BoDucRTest\CSV Files)"}
+  m_csvFilesFolder{ QDir::current() }  //BoDuc env
 {
+#if 1
   // setting folder path
   auto w_mypdfPathBefore = m_pdfFilesFolder.absolutePath();
   auto checkCurrFolder = QDir::currentPath();
@@ -38,6 +41,7 @@ AnalyzerBoxWidget::AnalyzerBoxWidget( QWidget* parent /*= Q_NULLPTR*/)
   }
   auto w_mypdfPathAfter = m_pdfFilesFolder.absolutePath();
 
+  // This is ok when testing with data folders are in the same folder
   if( !m_csvFilesFolder.cd(QString{ "CSV Files" }))
   {
     // Message to user that we cannot 
@@ -45,8 +49,25 @@ AnalyzerBoxWidget::AnalyzerBoxWidget( QWidget* parent /*= Q_NULLPTR*/)
     w_msgBox.setText(QString{ "CSV folder not accessible" });
     w_msgBox.exec();
   }
+#endif
   
-  auto checkcsvFolder = m_csvFilesFolder.absolutePath();
+  // check if folder exist, otherwise we shall stop the app
+  // or give a default folder (ask Francois)
+  if (!m_pdfFilesFolder.exists())
+  {
+    // Message to user that we cannot 
+    QMessageBox w_msgBox;
+    w_msgBox.setText(QString{ "PDF folder not accessible" });
+    w_msgBox.exec();
+  }
+  if( !m_csvFilesFolder.exists())
+  {
+    // Message to user that we cannot 
+    QMessageBox w_msgBox;
+    w_msgBox.setText(QString{ "CSV folder not accessible" });
+    w_msgBox.exec();
+  }
+ // auto checkcsvFolder = m_csvFilesFolder.absolutePath();
 
   QGroupBox* w_rowButtonsBoxLayout = createAnalyzerBox();
   QHBoxLayout* w_layout = new QHBoxLayout;
@@ -437,14 +458,12 @@ void AnalyzerBoxWidget::loadRPdfFiles()
     m_reportCmd.clear(); // reserve allocate memory (efficient) 
   }
 
-  // removed white space in file name
+  // removed white space in file name (whole PDF folder)
   removeWhiteSpaceFromFileName();
 
-  // use the current path which is PDF Files folder
-  // CSV Folder is at the same level 
+  // user files selection (pdf files)
   QStringList w_filesName = QFileDialog::getOpenFileNames(this, tr("Open File"),
     m_pdfFilesFolder.absolutePath(),
-    //QString(R"(F:\EllignoContract\BoDuc\QtTestGui\BoDucReportCreator\BoDucReportCreator\PDF Files)"),
     tr("Text (*.csv *.pdf)"));
  
 //   QMessageBox msgBox;
@@ -454,6 +473,8 @@ void AnalyzerBoxWidget::loadRPdfFiles()
   // returns the list of csv files (csv file contains command order (1.*))
   auto w_listOfFilesToExtractData = convertPdf2Csv(std::move(w_filesName));
 
+  // Design Note
+  //  No files selected shall do something??? 
   if( w_listOfFilesToExtractData.size()==0)
   {
     QMessageBox msgBox;
@@ -525,31 +546,31 @@ void AnalyzerBoxWidget::loadRPdfFiles()
 //     msgBox6.exec();
 
     // sanity check
-    const auto w_nbCmdThisFile = w_bdFileListCmdTxt.nbOfCmd();
+  //  const auto w_nbCmdThisFile = w_bdFileListCmdTxt.nbOfCmd();
     
 //     QMessageBox msgBox11;
 //     msgBox11.setText(QString{ "Nb of Cmd is " } + QString::fromStdString(std::to_string(w_nbCmdThisFile)));
 //     msgBox11.exec();
 
-    const auto w_nameCmdFile = w_bdFileListCmdTxt.filename();
+  //  const auto w_nameCmdFile = w_bdFileListCmdTxt.filename();
 
 //     QMessageBox msgBox12;
 //     msgBox12.setText(QString{ "Cmd Filename is " } + QString{ w_nameCmdFile });
 //     msgBox12.exec();
 
     // retrieve first command of the file (debugging purpose, don't need to do that)
-    const auto w_firstCmdTxt = w_bdFileListCmdTxt.first();
+  //  const auto w_firstCmdTxt = w_bdFileListCmdTxt.first();
 //     QMessageBox msgBox13;
 //     msgBox13.setText("Read First Cmd.");
 //     msgBox13.exec();
     
-    if( w_firstCmdTxt.isEmpty()) // && w_firstCmdTxt.hasTransporteurNameValid(glisTransporteur)
-    {
-      QMessageBox msgBox;
-      msgBox.setText("First Cmd Text is empty.");
-      msgBox.exec();
-      continue;
-    }
+//     if( w_firstCmdTxt.isEmpty()) // && w_firstCmdTxt.hasTransporteurNameValid(glisTransporteur)
+//     {
+//       QMessageBox msgBox;
+//       msgBox.setText("First Cmd Text is empty.");
+//       msgBox.exec();
+//       continue;
+//     }
 
     // debugging purpose
 //    std::vector<bdAPI::QBoDucFields> w_reportCmd;
@@ -587,38 +608,28 @@ void AnalyzerBoxWidget::loadRPdfFiles()
 
   // notify that new commands has been loaded 
   emit commandLoaded();
-
 }
 
+// Returns the list of files name 
 QStringList AnalyzerBoxWidget::convertPdf2Csv( QStringList&& aFilesName)
 {
-  // use the current path which is PDF Files folder
-  // CSV Folder is at the same level 
-//   QStringList w_filesName = QFileDialog::getOpenFileNames(this, tr("Open File"),
-//     QDir::currentPath(),
-//     tr("Text (*.txt *.csv *.pdf)"));
-
-  // what for??
+  // list of .csv files, used to extract data
   QStringList w_listOfFilesToExtractData;
   w_listOfFilesToExtractData.reserve(50);
 
   // converting pdf to csv format
-  //NOTE w_fileName 
   QStringListIterator w_dirFilesIter{ aFilesName };
   while (w_dirFilesIter.hasNext())
   {
     // complete file name and path
     const auto& w_file2Proceed = w_dirFilesIter.next();
 
-    //QFile w_file2Process{ w_file2Proceed };
+    // Design Note ???
     QFileInfo myFilename{ QFile{ w_file2Proceed } };
     auto w_file2Proceed1 = myFilename.fileName();
-    auto& w_absFilePath = myFilename.absolutePath();
-    const auto w_pdfFileAndPath = myFilename.absoluteFilePath();
-    const auto w_fileExt = myFilename.completeSuffix(); // shall be pdf, "." not included
 
     // sanity check
-    QDir w_pdfPathFile{ w_file2Proceed };
+ //   QDir w_pdfPathFile{ w_file2Proceed };
 //     if( QDir{ w_absFilePath } == m_pdfFilesFolder)
 //     {
 //       // Fine that's what we want for our test
@@ -629,9 +640,9 @@ QStringList AnalyzerBoxWidget::convertPdf2Csv( QStringList&& aFilesName)
 
     // w_absFilePath.replace( QRegExp("PDF"), "CSV");
     // QString w_csvFilepath = w_absFilePath;
-    if( w_absFilePath.contains("PDF", Qt::CaseInsensitive))
-      // need to change path to CSV
-      w_absFilePath.replace(QRegExp("PDF"), "CSV");
+//     if( w_absFilePath.contains("PDF", Qt::CaseInsensitive))
+//       // need to change path to CSV
+//       w_absFilePath.replace(QRegExp("PDF"), "CSV");
 
 //     if( QDir{ w_absFilePath } == m_csvFilesFolder)
 //     {
@@ -641,29 +652,13 @@ QStringList AnalyzerBoxWidget::convertPdf2Csv( QStringList&& aFilesName)
 //       msgBox.exec();
 //     }
 
-    // check if the extension is pdf
-    // replace PDF by CSV (exact match) in the path (need to search for string)
-    // check if contains PDF, the replace
-    //myStr.replace(QRegExp("PDF", "CSV");
-    // now add the "csv" extension
-    // QString s = "PDF";
-    // s.replace(QRegExp("PDF"), "CSV");
-
-    auto w_len = w_file2Proceed1.length();
     const QString w_char2Repl = "csv";
     auto& w_filecsv = w_file2Proceed1.replace(w_file2Proceed1.length() - 3, 3, QString("csv"));
-
-    //w_csvFilename += QString("/") + QString(".csv");
     QString w_csvFilenameAndpath = m_csvFilesFolder.absolutePath() + QString("/") + w_filecsv;
-    w_absFilePath += QString("/") + w_filecsv; // complete file name (full path) 
 
     // add it to the list
-    w_listOfFilesToExtractData.push_back(std::move(w_absFilePath));
-  }
-
-//   QMessageBox msgBox;
-//   msgBox.setText("CSV files name stored.");
-//   msgBox.exec();
+    w_listOfFilesToExtractData.push_back( std::move(w_csvFilenameAndpath));
+  }//while-loop
 
   // Design Note
   //  Don't need to iterate over all files, i think we can pass QStringList
@@ -677,7 +672,7 @@ QStringList AnalyzerBoxWidget::convertPdf2Csv( QStringList&& aFilesName)
 //   msgBox2.exec();
 
   // Reference https://stackoverflow.com/questions/2622864/start-a-process-using-qprocess
-  auto w_check = aFilesName.join(QChar{ ' ' });
+ //  auto w_check = aFilesName.join(QChar{ ' ' });
 
   QStringListIterator w_dirFilesItertest{ aFilesName };
   while (w_dirFilesItertest.hasNext())
@@ -687,25 +682,35 @@ QStringList AnalyzerBoxWidget::convertPdf2Csv( QStringList&& aFilesName)
     //QFile w_file2Process{ w_file2Proceed };
     QFileInfo myFilenametest{ QFile{ w_file2Proceedtest } };
     const auto w_file2Proceed1test = myFilenametest.fileName();
-    QProcess cmd{this};
-    const QString myProc = "cmd.exe /c BoDucRPdfscript.bat " + w_file2Proceed1test;
-    //Run it!
-    cmd.startDetached(QString{ "cmd.exe /c BoDucRPdfscript.bat " + w_file2Proceed1test }/*myProc*/); //working
-    //QProcess::execute(QString{ "cmd.exe /c BoDucRPdfscript.bat " + w_file2Proceed1test }/*myProc*/); //working
-    cmd.waitForFinished();
-   // cmd.terminate();
+    //QProcess cmd{ this };
+    // Calling the R script that extract data (R script contains path for pdf folder)
+    // Design Note
+    //  I think we shall pass the absoluteFilePath instead, avoid to set path in the script
+    //  csv file pat is set in both R script and cpp application (those 2 need to be the same)
+    //
+    //Run it! "cmd.exe /c 
+    QProcess::startDetached( QString{ "BoDucRPdfscript.bat " + w_file2Proceed1test });
+    
+    //cmd.start("BoDucRPdfscript.bat", QStringList() << "/C" << "w_file2Proceed1test");
+   // cmd.waitForStarted();
+ //   cmd.start("cmd.exe", QStringList() << "/C" << "C:/Users/admin/Desktop/test.txt");
+//     if(cmd.waitForFinished(10000))
+//     {
+//       QMessageBox msgBox2;
+//       msgBox2.setText("Processing to convert not finished.");
+//       msgBox2.exec();
+//     }
+    //cmd.waitForFinished();
+   
+//    cmd.close();
     //BoDucPdfTextExtract.R
    // const QString w_procmdString = "C:\\Program Files\\R\\R-4.1.1\\bin\\x64\\Rscript.exe BoDucRscriptConverter.R " + w_file2Proceed1test;
    // cmd.startDetached(w_procmdString);
-
-
-   // auto retCode = QProcess::execute(myProc, w_filesName);
-   // QProcess::start(myProc);
+   // QObject::connect();
   }
 
-//   QMessageBox msgBox3;
-//   msgBox3.setText("About to exit convert CSV.");
-//   msgBox3.exec();
+  // Temporary fix to let the writing task finish before reading files.
+  Sleep(10000);
 
   return w_listOfFilesToExtractData;
 }
@@ -988,123 +993,9 @@ void AnalyzerBoxWidget::removeWhiteSpaceFromFileName()
 //   QString sOldPath = QDir::currentPath();
 //   QString myPath = MainWindow::getWorkingDirectory();
 //   QDir::setCurrent(myPath);
-// 
-//   //Run it!
-//   cmd.startDetached(myProc);
-//   qDebug(myPath.toStdString().c_str());
-// 
-//   QDir::setCurrent(sOldPath);
 void AnalyzerBoxWidget::settingPath()
 {
-#if 0 // remove white space from file name
-  QString myjbPath = QDir::currentPath();
-  QDir myDir{ myjbPath };
-  auto jj = myDir.exists( QString{ "PDF Files" });
-
-  QString dirName = QFileDialog::getExistingDirectory(0, "Open Directory", QDir::currentPath(), QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-  QDir directory(dirName);
-
-  QStringList filters;
-  filters << "*.pdf";
-  QStringList files = directory.entryList(filters);
-
-  QStringList changedFiles, failedFiles;
-
-  foreach( QString filename, files)
-  {
-    //QFileInfo info(filename);
-    QFileInfo info(directory.absolutePath() + "/" + filename);
-    QString rawFileName = filename.section(".", 0, 0);
-    rawFileName.remove(' ');
-    QString newName = info.absoluteFilePath().section("/", 0, -2) + "/" + rawFileName + ".pdf";
-
-    bool success = directory.rename(info.absoluteFilePath(), newName);
-
-    if (success)
-    {
-      changedFiles << info.absoluteFilePath();
-    }
-    else
-    {
-      failedFiles << info.absoluteFilePath();
-    }
-  }
-#endif // 0
-
 #if 0
-  // now opening file to be processed (name of the file returned)
-  QStringList w_filesName = QFileDialog::getOpenFileNames(this, tr("Open File"),
-    QDir::currentPath(),
-    tr("Text (*.txt *.csv *.pdf)"));
-
-  QFile w_file2Process{ w_filesName[0] };
-  QFileInfo myFilename{ w_file2Process };
-  const auto w_fileName = myFilename.fileName();
-
-  const QString w_testFile = w_filesName[0];
-  QString w_cmdTestRArg = "cmd.exe /c bdRscript.bat " + w_testFile;
-  QProcess testCalBatFile;
-  testCalBatFile.startDetached(w_cmdTestRArg);
-
-  float sha = 1.f;
-#endif
-
-#if 0
-  //
- // const QString w_testFile = " Martinco co 200957-200969.pdf";
- // QString w_cmdTestRArg = "cmd.exe /c BoDucRPdfscript.bat " + QString{" "} +w_testFile;
-
-  // just testing for debug
-  // loop on file names
-  auto nbFilesSelected = w_filesName.size();
-  QStringListIterator w_dirFilesIter{w_filesName};
-  while( w_dirFilesIter.hasNext())
-  {
-    const auto& w_file2Proceed = w_dirFilesIter.next();
-    QProcess cmd;
-    //  auto myFile = QString("Martincoco200957-200969.pdf");
-    const QString myProc = "cmd.exe /c BoDucRPdfscript.bat " + w_file2Proceed;
-    //Run it!
-    cmd.startDetached(myProc);
-  }
-
-#endif // 0
-
-  // not sure what we do here
-  removeWhiteSpaceFromFileName();
-
-  QStringList w_filesName = QFileDialog::getOpenFileNames(this, tr("Open File"),
-    QDir::currentPath(),
-    tr("Text (*.txt *.csv *.pdf)"));
-//   QFile w_file2Process1{ w_filesName[0] };
-//   QFileInfo myFilename{ w_file2Process1 };
-//   const auto w_fileName1 = myFilename.fileName();
-// 
-//   QFile w_file2Process2{ w_filesName[1] };
-//   QFileInfo myFilename2{ w_file2Process2 };
-//   const auto w_fileName2 = myFilename2.fileName();
-
-#if 0
-  QStringListIterator w_dirFilesIter{ w_filesName };
-  while (w_dirFilesIter.hasNext())
-  {
-    const auto& w_file2Proceed = w_dirFilesIter.next();
-    //QFile w_file2Process{ w_file2Proceed };
-    QFileInfo myFilename{ QFile{ w_file2Proceed } };
-    const auto w_file2Proceed1 = myFilename.fileName();
-    QProcess cmd;
-    //  auto myFile = QString("Martincoco200957-200969.pdf");
-    const QString myProc = "cmd.exe /c BoDucRPdfscript.bat " + w_file2Proceed1;
-
-    // Should use start instead??
-    //Run it!
-    cmd.startDetached(myProc);
-  }//while  
-#endif // 0
-
-//    QString sOldPath = QDir::currentPath();
-//    QString myPath = MainWindow::getWorkingDirectory();
-//    QDir::setCurrent(myPath);
   QProcess w_cmdProc;
   //w_cmdProc.setArguments(w_filesName);
   //  auto myFile = QString("Martincoco200957-200969.pdf");
@@ -1113,44 +1004,8 @@ void AnalyzerBoxWidget::settingPath()
   w_cmdProc.startDetached( w_procmdString/*, QStringList() << "valleroy562610817.pdf"*/);
   int jj = 2;
   //w_cmdProc.start(w_procmdString, w_filesName);
-
-
-#if 0
-  for (auto i=0; i<2;++i)
-  {
-    QProcess cmd;
-    //  auto myFile = QString("Martincoco200957-200969.pdf");
-    const QString myProc1 = "cmd.exe /c BoDucRPdfscript.bat " + w_fileName1; // +MainWindow::getWorkingConfiguration();
-
-    //QString sOldPath = QDir::currentPath();
-    //   QString myPath = MainWindow::getWorkingDirectory();
-    //   QDir::setCurrent(myPath);
-
-    //QString sOldPath = QDir::currentPath();
-    QString myPath = QDir::currentPath();
-
-    //Run it!
-    cmd.startDetached(myProc1);
-
-   //  QProcess cmd;
-     //  auto myFile = QString("Martincoco200957-200969.pdf");
-    const QString myProc2 = "cmd.exe /c BoDucRPdfscript.bat " + w_fileName2; // +MainWindow::getWorkingConfiguration();
-
-    //QString sOldPath = QDir::currentPath();
-    //   QString myPath = MainWindow::getWorkingDirectory();
-    //   QDir::setCurrent(myPath);
-
-    //QString sOldPath = QDir::currentPath();
-   // QString myPath = QDir::currentPath();
-
-    //Run it!
-    cmd.startDetached(myProc2);
-  }
-  //  cmd.startDetached(w_cmdTestRArg); // testing purpose
-//  qDebug(myPath.toStdString().c_str());
-
-//  QDir::setCurrent(sOldPath);
 #endif
+
 }
 
 //  TODO: implementation is not complete

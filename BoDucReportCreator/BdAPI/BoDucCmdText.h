@@ -5,8 +5,6 @@
 #include <vector>
 #include <utility> // std::move
 #include <forward_list>
-// boost includes
-//#include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp> // string algorithm
 //#include <boost/algorithm/string/split.hpp> // splitting algo
 // Qt includes
